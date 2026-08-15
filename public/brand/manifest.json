@@ -1,0 +1,11 @@
+{
+  "brand": "Comentou",
+  "primaryLogo": {
+    "file": "comentou-logo-primary.png",
+    "width": 2091,
+    "height": 752,
+    "sha256": "1ECB00204CC513DC6E630554DF153D4E18D81B8EFC73339013D6585C424BCA7E",
+    "status": "approved-immutable",
+    "approvedAt": "2026-08-15"
+  }
+}

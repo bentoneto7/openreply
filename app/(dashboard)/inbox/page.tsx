@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Inbox
+ * Oportunidades
  *
  * Instagram DM conversations for the selected account, with live message
  * history and a reply composer. Messages are read from the Conversations API
@@ -103,10 +103,10 @@ export default function InboxPage() {
           writeCache(convCacheKey(selectedAccountId), data.data.conversations);
           setConvError(null);
         } else if (!silent) {
-          setConvError(data.error ?? "Failed to load conversations");
+          setConvError(data.error ?? "Não foi possível carregar as conversas");
         }
       } catch {
-        if (!silent) setConvError("Failed to load conversations");
+        if (!silent) setConvError("Não foi possível carregar as conversas");
       } finally {
         if (!silent) setConvLoading(false);
       }
@@ -238,12 +238,12 @@ export default function InboxPage() {
         // Roll the optimistic message back and restore the draft so it's not lost.
         setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
         setDraft(text);
-        setSendError(data.error ?? "Failed to send message");
+        setSendError(data.error ?? "Não foi possível enviar a mensagem");
       }
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setDraft(text);
-      setSendError("Failed to send message");
+      setSendError("Não foi possível enviar a mensagem");
     } finally {
       setSending(false);
     }
@@ -259,7 +259,7 @@ export default function InboxPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4">
-        <h1 className="text-lg font-semibold text-foreground">Inbox</h1>
+        <h1 className="text-lg font-semibold text-foreground">Oportunidades</h1>
         {accounts.length > 1 && (
           <AccountSelect
             accounts={accounts}
@@ -337,7 +337,7 @@ export default function InboxPage() {
                   type="button"
                   onClick={() => setActiveId(null)}
                   className="-ml-1 rounded px-2 py-1 text-muted hover:text-foreground sm:hidden"
-                  aria-label="Back to conversations"
+                  aria-label="Voltar para conversas"
                 >
                   Back
                 </button>
@@ -397,7 +397,7 @@ export default function InboxPage() {
                     disabled={sending || !draft.trim()}
                     className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
                   >
-                    {sending ? "Sending…" : "Send"}
+                    {sending ? "Enviando…" : "Enviar"}
                   </button>
                 </div>
               </div>

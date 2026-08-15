@@ -77,7 +77,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="text-sm font-bold uppercase tracking-wide text-cyan-200">
+              <p className="text-sm font-bold uppercase tracking-wide text-blue-200">
                 Client campaign report
               </p>
               <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight text-white sm:text-5xl">
@@ -109,9 +109,9 @@ export default async function ReportPage({ params }: ReportPageProps) {
               {report.branded && (
                 <Link
                   href="/"
-                  className="mt-4 inline-flex items-center justify-center border border-cyan-200/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:border-cyan-200/40"
+                  className="mt-4 inline-flex items-center justify-center border border-blue-200/20 bg-blue-300/10 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:border-blue-200/40"
                 >
-                  Powered by OpenReply
+                  Powered by Comentou
                 </Link>
               )}
             </div>
@@ -168,7 +168,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
                 <div key={day.date} className="flex h-full flex-col justify-end gap-2">
                   <div className="flex min-h-0 flex-1 items-end gap-1">
                     <div
-                      className="w-full bg-cyan-300/75"
+                      className="w-full bg-blue-300/75"
                       style={{
                         height: `${Math.max((day.sent / maxDaily) * 100, 4)}%`,
                       }}
@@ -190,7 +190,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
             </div>
             <div className="mt-5 flex flex-wrap gap-4 text-xs text-zinc-400">
               <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 bg-cyan-300" />
+                <span className="h-2 w-2 bg-blue-300" />
                 Sent replies
               </span>
               <span className="inline-flex items-center gap-2">
@@ -286,7 +286,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
                   href={report.campaign.postUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-flex text-sm font-semibold text-cyan-200 transition hover:text-cyan-100"
+                  className="mt-3 inline-flex text-sm font-semibold text-blue-200 transition hover:text-blue-100"
                 >
                   View Instagram post
                 </a>
@@ -299,7 +299,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
         {report.branded && (
           <footer className="mt-8 border-t border-white/10 pt-6 text-center text-xs text-zinc-500">
-            Built with OpenReply, the Instagram comment-to-DM campaign OS.
+            Built with Comentou, the Instagram comment-to-DM campaign OS.
           </footer>
         )}
       </section>

@@ -148,11 +148,11 @@ export default function DiagnosticsPage() {
               data?.workerHealth.healthy ? "text-success" : "text-warning"
             }`}
           >
-            {data?.workerHealth.healthy ? "Healthy" : "Needs attention"}
+            {data?.workerHealth.healthy ? "Saudável" : "Precisa de atenção"}
           </p>
           <p className="mt-2 text-xs text-muted">
             {workerAgeSeconds == null
-              ? "No heartbeat found"
+              ? "Nenhum sinal do worker"
               : `Last heartbeat ${workerAgeSeconds}s ago`}
           </p>
         </div>
@@ -168,7 +168,7 @@ export default function DiagnosticsPage() {
         ))}
       </div>
 
-      <Section title="Recent Worker Alerts">
+      <Section title="Recentes Worker Alerts">
         {data?.workerAlerts.length ? (
           <div className="space-y-3">
             {data.workerAlerts.map((alert) => (
@@ -197,7 +197,7 @@ export default function DiagnosticsPage() {
       </Section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Campaign DM Failures And Skips">
+        <Section title="Falhas e mensagens ignoradas">
           {data?.dmFailures.length ? (
             <div className="space-y-3">
               {data.dmFailures.map((item) => (
@@ -222,7 +222,7 @@ export default function DiagnosticsPage() {
           )}
         </Section>
 
-        <Section title="Webhook Failures">
+        <Section title="Falhas de webhook">
           {data?.webhookFailures.length ? (
             <div className="space-y-3">
               {data.webhookFailures.map((event) => (
@@ -231,7 +231,7 @@ export default function DiagnosticsPage() {
                     {event.object ?? "Instagram webhook"}
                   </p>
                   <p className="mt-1 text-xs text-error">
-                    {event.errorMessage ?? "Unknown error"}
+                    {event.errorMessage ?? "Erro desconhecido"}
                   </p>
                   <p className="mt-1 text-xs text-muted">
                     {formatDate(event.createdAt)}
@@ -246,7 +246,7 @@ export default function DiagnosticsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Token Refresh Failures">
+        <Section title="Falhas na atualização de token">
           {data?.tokenRefreshFailures.length ? (
             <div className="space-y-3">
               {data.tokenRefreshFailures.map((event) => (
@@ -267,7 +267,7 @@ export default function DiagnosticsPage() {
 
       </div>
 
-      <Section title="Operational Event Timeline">
+      <Section title="Linha do tempo operacional">
         {data?.operationalEvents.length ? (
           <div className="space-y-3">
             {data.operationalEvents.map((event) => (

@@ -25,7 +25,7 @@ export async function generateMetadata({
 
   if (!template) {
     return {
-      title: "Template Not Found - OpenReply",
+      title: "Template Not Found - Comentou",
     };
   }
 
@@ -67,7 +67,7 @@ export default async function TemplateDetailPage({ params }: TemplatePageProps) 
             >
               Back to templates
             </Link>
-            <p className="mt-8 text-sm font-bold uppercase tracking-wide text-cyan-200">
+            <p className="mt-8 text-sm font-bold uppercase tracking-wide text-blue-200">
               {template.category} template
             </p>
             <h1 className="mt-4 text-5xl font-black leading-[1.02] text-white sm:text-6xl">
@@ -79,7 +79,7 @@ export default async function TemplateDetailPage({ params }: TemplatePageProps) 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href={`/login?template=${template.slug}`}
-                className="inline-flex items-center justify-center bg-cyan-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
+                className="inline-flex items-center justify-center bg-blue-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-blue-200"
               >
                 Use this template
               </Link>
@@ -133,7 +133,7 @@ export default async function TemplateDetailPage({ params }: TemplatePageProps) 
             <ol className="mt-5 space-y-3">
               {template.playbook.map((step, index) => (
                 <li key={step} className="grid gap-3 sm:grid-cols-[40px_1fr]">
-                  <span className="flex h-8 w-8 items-center justify-center bg-cyan-300 text-sm font-black text-zinc-950">
+                  <span className="flex h-8 w-8 items-center justify-center bg-blue-300 text-sm font-black text-zinc-950">
                     {index + 1}
                   </span>
                   <span className="text-sm leading-7 text-zinc-300">{step}</span>
@@ -165,11 +165,11 @@ export default async function TemplateDetailPage({ params }: TemplatePageProps) 
             </div>
           </section>
 
-          <section className="border border-cyan-200/20 bg-cyan-300/10 p-6">
+          <section className="border border-blue-200/20 bg-blue-300/10 p-6">
             <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
                 <h2 className="text-2xl font-black text-white">
-                  Copy this campaign into OpenReply
+                  Copy this campaign into Comentou
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-300">
                   Sign in, connect Instagram, pick a post or reel, and the
@@ -178,7 +178,7 @@ export default async function TemplateDetailPage({ params }: TemplatePageProps) 
               </div>
               <Link
                 href={`/login?template=${template.slug}`}
-                className="inline-flex items-center justify-center bg-cyan-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
+                className="inline-flex items-center justify-center bg-blue-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-blue-200"
               >
                 Use this template
               </Link>
@@ -197,7 +197,7 @@ export default async function TemplateDetailPage({ params }: TemplatePageProps) 
                 href={`/templates/${item.slug}`}
                 className="border border-white/10 bg-white/[0.035] p-5 transition hover:border-white/20 hover:bg-white/[0.055]"
               >
-                <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">
                   {item.category}
                 </p>
                 <h3 className="mt-3 text-lg font-black text-white">

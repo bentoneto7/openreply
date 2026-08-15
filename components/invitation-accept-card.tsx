@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface InvitationAcceptCardProps {
   token: string;
@@ -13,6 +14,7 @@ export default function InvitationAcceptCard({
   isSignedIn,
   invitedEmail,
 }: InvitationAcceptCardProps) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -26,10 +28,11 @@ export default function InvitationAcceptCard({
     });
     const payload = await response.json();
     if (payload.success) {
-      window.location.assign("/dashboard");
+      router.push("/dashboard");
+      router.refresh();
       return;
     }
-    setMessage(payload.error ?? "Could not accept invitation");
+    setMessage(payload.error ?? "Não foi possível aceitar o convite");
     setBusy(false);
   }
 
@@ -39,7 +42,7 @@ export default function InvitationAcceptCard({
         href="/login"
         className="inline-flex items-center justify-center rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-hover"
       >
-        Sign in to accept
+        Entrar para aceitar
       </a>
     );
   }
@@ -52,11 +55,11 @@ export default function InvitationAcceptCard({
         disabled={busy}
         className="inline-flex items-center justify-center rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-hover disabled:opacity-50"
       >
-        {busy ? "Accepting..." : "Accept invitation"}
+        {busy ? "Aceitando..." : "Aceitar convite"}
       </button>
       {message && <p className="text-sm text-error">{message}</p>}
       <p className="text-xs text-muted">
-        Use the magic link account for {invitedEmail}.
+        Use a conta do link mágico enviada para {invitedEmail}.
       </p>
     </div>
   );

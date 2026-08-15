@@ -35,7 +35,7 @@ export default function SeoPageShell({ config }: { config: SeoPageConfig }) {
       <section className="border-b border-white/10 bg-zinc-950/70">
         <div className="mx-auto grid w-full max-w-7xl gap-10 px-5 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
           <div>
-            <p className="text-sm font-bold uppercase text-cyan-200">
+            <p className="text-sm font-bold uppercase text-blue-200">
               {config.eyebrow}
             </p>
             <h1 className="mt-4 text-5xl font-black leading-tight text-white sm:text-6xl">
@@ -47,7 +47,7 @@ export default function SeoPageShell({ config }: { config: SeoPageConfig }) {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center bg-cyan-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
+                className="inline-flex items-center justify-center bg-blue-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-blue-200"
               >
                 {config.primaryCta}
               </Link>
@@ -92,7 +92,7 @@ export default function SeoPageShell({ config }: { config: SeoPageConfig }) {
           <div className="mt-8 overflow-hidden border border-white/10">
             <div className="grid grid-cols-[0.8fr_1fr_1fr] border-b border-white/10 bg-zinc-950 text-xs font-bold uppercase tracking-wide text-zinc-500">
               <div className="p-4">Need</div>
-              <div className="p-4 text-cyan-100">OpenReply</div>
+              <div className="p-4 text-blue-100">Comentou</div>
               <div className="p-4">Generic automation</div>
             </div>
             {config.comparisons.map((item) => (
@@ -133,7 +133,7 @@ export default function SeoPageShell({ config }: { config: SeoPageConfig }) {
             <Link
               key={link.href}
               href={link.href}
-              className="border border-white/10 bg-white/[0.035] p-5 text-sm font-semibold text-white transition hover:border-cyan-200/30 hover:bg-cyan-300/10"
+              className="border border-white/10 bg-white/[0.035] p-5 text-sm font-semibold text-white transition hover:border-blue-200/30 hover:bg-blue-300/10"
             >
               {link.label}
             </Link>
@@ -144,7 +144,7 @@ export default function SeoPageShell({ config }: { config: SeoPageConfig }) {
       <section className="border-t border-white/10 bg-zinc-950/70 py-16">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
           <div>
-            <p className="text-sm font-bold uppercase text-cyan-200">FAQ</p>
+            <p className="text-sm font-bold uppercase text-blue-200">FAQ</p>
             <h2 className="mt-3 text-4xl font-black text-white">
               Search questions, answered clearly
             </h2>
@@ -161,17 +161,17 @@ export default function SeoPageShell({ config }: { config: SeoPageConfig }) {
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-6 lg:px-8">
-        <div className="border border-cyan-200/20 bg-cyan-300/10 p-8 text-center">
+        <div className="border border-blue-200/20 bg-blue-300/10 p-8 text-center">
           <h2 className="text-4xl font-black text-white">
             Turn the next high-intent comment into a private reply
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-zinc-300">
-            OpenReply is built for Instagram professional accounts, official
+            Comentou is built for Instagram professional accounts, official
             Meta private replies, and campaign reporting teams can show clients.
           </p>
           <Link
             href="/login"
-            className="mt-8 inline-flex items-center justify-center bg-cyan-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
+            className="mt-8 inline-flex items-center justify-center bg-blue-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-blue-200"
           >
             Start free
           </Link>

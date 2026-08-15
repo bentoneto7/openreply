@@ -239,7 +239,7 @@ export default function CampaignDetailPage() {
           <Summary title="They must follow first">
             <FieldBox>
               {campaign.followPromptMessage ||
-                "quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over"}
+                "Antes de enviar o link, siga nosso perfil e toque no botão abaixo. Assim que confirmarmos, o conteúdo será liberado para você."}
             </FieldBox>
             <FieldBox>
               {campaign.followPromptButtonLabel || "i'm following"}

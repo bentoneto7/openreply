@@ -31,7 +31,7 @@ export function BillingActions({ hasCustomer }: { hasCustomer: boolean }) {
           disabled={busy !== null}
           className="rounded bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
-          {busy === "checkout" ? "Abrindo checkout..." : "Assinar por R$ 87/mês"}
+          {busy === "checkout" ? "Abrindo checkout..." : "Ativar Comentou por R$ 87/mês"}
         </button>
         {hasCustomer && (
           <button

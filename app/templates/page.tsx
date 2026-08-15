@@ -5,7 +5,7 @@ import TemplateVisual from "@/components/template-visual";
 import { CAMPAIGN_TEMPLATES } from "@/lib/templates/campaign-templates";
 
 export const metadata: Metadata = {
-  title: "Instagram Comment to DM Templates - OpenReply",
+  title: "Instagram Comment to DM Templates - Comentou",
   description:
     "Copy ready-to-launch Instagram comment-to-DM campaign templates for product links, lead magnets, real estate, fitness, restaurants, events, and creators.",
   keywords: [
@@ -24,7 +24,7 @@ export default function TemplatesPage() {
       <section className="border-b border-white/10 bg-zinc-950/55">
         <div className="mx-auto grid w-full max-w-7xl gap-10 px-5 py-16 sm:px-6 lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:py-20">
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-cyan-200">
+            <p className="text-sm font-bold uppercase tracking-wide text-blue-200">
               Public template library
             </p>
             <h1 className="mt-4 text-5xl font-black leading-[1.02] text-white sm:text-6xl">
@@ -37,7 +37,7 @@ export default function TemplatesPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center bg-cyan-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
+                className="inline-flex items-center justify-center bg-blue-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-blue-200"
               >
                 Start free
               </Link>
@@ -71,7 +71,7 @@ export default function TemplatesPage() {
               <div className="mb-5">
                 <TemplateVisual template={template} compact />
               </div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">
                 {template.category}
               </p>
               <h2 className="mt-3 text-xl font-black leading-tight text-white">
@@ -99,7 +99,7 @@ export default function TemplatesPage() {
                 </Link>
                 <Link
                   href={`/login?template=${template.slug}`}
-                  className="inline-flex w-full items-center justify-center bg-cyan-300 px-4 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
+                  className="inline-flex w-full items-center justify-center bg-blue-300 px-4 py-3 text-sm font-bold text-zinc-950 transition hover:bg-blue-200"
                 >
                   Use this template
                 </Link>

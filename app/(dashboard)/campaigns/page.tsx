@@ -19,7 +19,7 @@ interface Campaign {
   postId: string | null;
   postUrl: string | null;
   pendingNextReel: boolean;
-  matchAnyPost: boolean;
+  matchAnyPublicação: boolean;
   keywords: string[];
   matchAnyWord: boolean;
   dmMessage: string;
@@ -32,7 +32,7 @@ interface Campaign {
   requireFollow: boolean;
   followPromptMessage: string | null;
   followPromptButtonLabel: string | null;
-  isActive: boolean;
+  isAtiva: boolean;
   wholeWordMatch: boolean;
   instagramAccountId: string;
   instagramAccount: {
@@ -197,15 +197,15 @@ export default function CampaignsPage() {
     setSelectedAccountId(accountId);
   }
 
-  async function toggleActive(id: string, isActive: boolean) {
+  async function toggleAtiva(id: string, isAtiva: boolean) {
     try {
       await fetch(`/api/automations?id=${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !isActive }),
+        body: JSON.stringify({ isAtiva: !isAtiva }),
       });
       setAutomations((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, isActive: !isActive } : a))
+        prev.map((a) => (a.id === id ? { ...a, isAtiva: !isAtiva } : a))
       );
     } catch (err) {
       console.error("Failed to toggle:", err);
@@ -239,7 +239,7 @@ export default function CampaignsPage() {
 
   async function duplicateAutomation(auto: Campaign) {
     setMenuOpenId(null);
-    const specific = !auto.matchAnyPost && !auto.pendingNextReel;
+    const specific = !auto.matchAnyPublicação && !auto.pendingNextReel;
     try {
       const res = await fetch("/api/automations", {
         method: "POST",
@@ -249,7 +249,7 @@ export default function CampaignsPage() {
           instagramAccountId: auto.instagramAccountId,
           postId: specific ? auto.postId : null,
           postUrl: specific ? auto.postUrl : null,
-          matchAnyPost: auto.matchAnyPost,
+          matchAnyPublicação: auto.matchAnyPublicação,
           pendingNextReel: auto.pendingNextReel,
           matchAnyWord: auto.matchAnyWord,
           keywords: auto.keywords,
@@ -261,12 +261,12 @@ export default function CampaignsPage() {
           publicReplyMessages: auto.publicReplyMessages,
           trackedDestinationUrl: auto.trackedLinks[0]?.destinationUrl ?? "",
           secondaryDestinationUrl: auto.trackedLinks[1]?.destinationUrl ?? "",
-          secondaryButtonLabel: auto.trackedLinks[1]?.label ?? "Open link",
+          secondaryButtonLabel: auto.trackedLinks[1]?.label ?? "Abrir link",
           requireFollow: auto.requireFollow,
           followPromptMessage: auto.followPromptMessage,
           followPromptButtonLabel: auto.followPromptButtonLabel,
           wholeWordMatch: auto.wholeWordMatch,
-          isActive: false,
+          isAtiva: false,
         }),
       });
       const data = await res.json();
@@ -289,8 +289,8 @@ export default function CampaignsPage() {
 
   const query = search.trim().toLowerCase();
   const filtered = automations.filter((a) => {
-    if (statusFilter === "active" && !a.isActive) return false;
-    if (statusFilter === "paused" && a.isActive) return false;
+    if (statusFilter === "active" && !a.isAtiva) return false;
+    if (statusFilter === "paused" && a.isAtiva) return false;
     if (!query) return true;
     return (
       a.name.toLowerCase().includes(query) ||
@@ -366,7 +366,7 @@ export default function CampaignsPage() {
       {/* Empty state */}
       {automations.length === 0 && (
         <div className="panel rounded p-8 text-center sm:p-12">
-          <h3 className="text-lg font-semibold mb-2">No campaigns yet</h3>
+          <h3 className="text-lg font-semibold mb-2">Nenhuma automação criada</h3>
           <p className="text-sm text-muted mb-6 max-w-sm mx-auto">
             Create your first comment-to-DM campaign to turn a post or reel into a measurable conversation flow.
           </p>
@@ -407,13 +407,13 @@ export default function CampaignsPage() {
                       e.stopPropagation();
                       setPlayingVideo({ url: videoUrl, postUrl: auto.postUrl });
                     }}
-                    aria-label="Play reel preview"
+                    aria-label="Reproduzir prévia do reel"
                     className="shrink-0"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={thumbnails[auto.postId]}
-                      alt="Campaign reel"
+                      alt="Reel da automação"
                       className="w-12 h-12 rounded object-cover border border-border hover:border-border-hover"
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
@@ -431,7 +431,7 @@ export default function CampaignsPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={thumbnails[auto.postId]}
-                      alt="Campaign post"
+                      alt="Publicação da automação"
                       className="w-12 h-12 rounded object-cover border border-border"
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
@@ -448,12 +448,12 @@ export default function CampaignsPage() {
                   </span>
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      auto.isActive
+                      auto.isAtiva
                         ? "bg-success/10 text-success"
                         : "bg-zinc-500/10 text-muted"
                     }`}
                   >
-                    {auto.isActive ? "Active" : "Paused"}
+                    {auto.isAtiva ? "Ativa" : "Pausada"}
                   </span>
                   {auto.pendingNextReel && (
                     <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-warning">
@@ -538,21 +538,21 @@ export default function CampaignsPage() {
                     onClick={() => void copyReelUrl(auto)}
                     className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-hover hover:text-foreground"
                   >
-                    {copiedId === auto.id ? "Copied!" : "Copy URL"}
+                    {copiedId === auto.id ? "Copiado!" : "Copiar URL"}
                   </button>
                 )}
                 {/* Toggle */}
                 <button
-                  onClick={() => toggleActive(auto.id, auto.isActive)}
+                  onClick={() => toggleAtiva(auto.id, auto.isAtiva)}
                   className={`
                     relative w-11 h-6 rounded-full transition-colors
-                    ${auto.isActive ? "bg-accent" : "bg-zinc-300"}
+                    ${auto.isAtiva ? "bg-accent" : "bg-zinc-300"}
                   `}
                 >
                   <span
                     className={`
                       absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm
-                      ${auto.isActive ? "left-6" : "left-1"}
+                      ${auto.isAtiva ? "left-6" : "left-1"}
                     `}
                   />
                 </button>
@@ -563,7 +563,7 @@ export default function CampaignsPage() {
                     onClick={() =>
                       setMenuOpenId((cur) => (cur === auto.id ? null : auto.id))
                     }
-                    aria-label="More actions"
+                    aria-label="Mais ações"
                     className="px-2 py-1 rounded text-lg leading-none text-muted hover:text-foreground"
                   >
                     ⋯

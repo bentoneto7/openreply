@@ -1,9 +1,10 @@
 import { signIn } from "@/lib/auth";
 import { getCampaignTemplate } from "@/lib/templates/campaign-templates";
+import BrandLogo from "@/components/brand-logo";
 
 export const metadata = {
-  title: "Entrar - OpenReply",
-  description: "Entre para gerenciar campanhas de comentários para DM no Instagram.",
+  title: "Entrar - Comentou",
+  description: "Entre para acompanhar comentários com intenção e oportunidades de venda.",
 };
 
 export default async function LoginPage({
@@ -35,13 +36,11 @@ export default async function LoginPage({
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-foreground">
-            OpenReply
-          </h1>
+          <BrandLogo className="mx-auto h-auto w-40" priority />
           <p className="text-muted text-sm leading-relaxed mt-2">
             {selectedTemplate
               ? `Entre para usar o modelo ${selectedTemplate.title}.`
-              : "Entre por e-mail e conecte sua conta profissional do Instagram."}
+              : "Entre para transformar comentários com intenção em conversas de venda."}
           </p>
         </div>
 
@@ -89,7 +88,7 @@ export default async function LoginPage({
                 type="submit"
                 className="w-full inline-flex items-center justify-center gap-2 rounded bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-indigo-500/25 transition-all hover:shadow-indigo-500/30"
               >
-                Enviar link mágico por e-mail
+                Receber link de acesso
               </button>
             </form>
           )}
