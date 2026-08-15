@@ -1,6 +1,8 @@
 import { signIn } from "@/lib/auth";
 import { getCampaignTemplate } from "@/lib/templates/campaign-templates";
 import BrandLogo from "@/components/brand-logo";
+import Link from "next/link";
+import PasswordLoginForm from "@/components/password-login-form";
 
 export const metadata = {
   title: "Entrar - Comentou",
@@ -65,6 +67,9 @@ export default async function LoginPage({
               </p>
             </div>
           ) : (
+            <div className="space-y-6">
+              <PasswordLoginForm callbackUrl={callbackUrl} />
+              <div className="flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-border" /><span>ou use o link por e-mail</span><span className="h-px flex-1 bg-border" /></div>
             <form action={sendMagicLink} className="space-y-5">
               <div className="space-y-2">
                 <label
@@ -91,7 +96,9 @@ export default async function LoginPage({
                 Receber link de acesso
               </button>
             </form>
+            </div>
           )}
+          {!checkEmail && <p className="mt-5 text-center text-sm text-muted">Ainda não tem conta? <Link href="/cadastro" className="font-semibold text-accent hover:underline">Cadastre-se com senha</Link></p>}
         </div>
       </div>
     </div>
