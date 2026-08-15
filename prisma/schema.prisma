@@ -74,6 +74,12 @@ model Workspace {
 
   usagePeriodStart  DateTime @default(now())
   dmsSentThisPeriod Int      @default(0)
+  subscriptionStatus     SubscriptionStatus @default(NONE)
+  stripeCustomerId       String?            @unique
+  stripeSubscriptionId   String?            @unique
+  stripePriceId          String?
+  subscriptionPeriodEnd  DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
 
   members           WorkspaceMember[]
   invitations       WorkspaceInvitation[]
@@ -84,8 +90,26 @@ model Workspace {
   linkClicks        LinkClick[]
   webhookEvents     WebhookEvent[]
   operationalEvents OperationalEvent[]
+  billingEvents     BillingEvent[]
 
   @@index([ownerId])
+}
+
+model BillingEvent {
+  id            String   @id @default(cuid())
+  workspaceId   String?
+  stripeEventId String   @unique
+  type          String
+  payload       Json
+  processedAt   DateTime?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([type])
+  @@index([createdAt])
 }
 
 model WorkspaceMember {
@@ -349,6 +373,17 @@ enum WorkspaceRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+enum SubscriptionStatus {
+  NONE
+  INCOMPLETE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  UNPAID
+  PAUSED
+  CANCELED
 }
 
 enum WorkspaceInvitationStatus {

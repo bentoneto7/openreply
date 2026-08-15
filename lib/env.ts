@@ -50,6 +50,10 @@ export function getMetaGraphApiVersion(): string {
   return process.env.META_GRAPH_API_VERSION ?? "v25.0";
 }
 
+export function isBillingEnforcementEnabled(): boolean {
+  return process.env.BILLING_ENFORCEMENT_ENABLED === "true";
+}
+
 export const serverEnvSchema = z.object({
   NEXTAUTH_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(16),
