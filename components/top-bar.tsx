@@ -12,6 +12,7 @@ import { Menu, Plus, Sparkles } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Central de vendas",
+  "/heatmap": "Mapa de Calor",
   "/overview": "Resultados",
   "/inbox": "Oportunidades",
   "/campaigns": "Automações",

@@ -13,6 +13,7 @@ import {
   BarChart3,
   Bot,
   CreditCard,
+  Flame,
   HeartHandshake,
   LayoutDashboard,
   ListChecks,
@@ -22,6 +23,7 @@ import {
 
 const navItems = [
   { label: "Central de vendas", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Mapa de Calor", href: "/heatmap", icon: Flame },
   { label: "Resultados", href: "/overview", icon: BarChart3 },
   { label: "Oportunidades", href: "/inbox", icon: HeartHandshake },
   { label: "Automações", href: "/campaigns", icon: Bot },
