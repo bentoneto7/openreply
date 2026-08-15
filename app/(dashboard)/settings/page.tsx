@@ -55,6 +55,7 @@ export default function SettingsPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
   const [memberError, setMemberError] = useState<string | null>(null);
+  const [memberNotice, setMemberNotice] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -91,6 +92,7 @@ export default function SettingsPage() {
   async function inviteMember(event: React.FormEvent) {
     event.preventDefault();
     setMemberError(null);
+    setMemberNotice(null);
     setBusy("invite");
     const res = await fetch("/api/workspace/members", {
       method: "POST",
@@ -101,6 +103,7 @@ export default function SettingsPage() {
     if (payload.success) {
       setMembersData(payload.data);
       setInviteEmail("");
+      setMemberNotice(payload.warning ?? (payload.existingMember ? "A pessoa já tinha uma conta e foi adicionada à equipe." : "Convite enviado por e-mail com sucesso."));
     } else {
       setMemberError(payload.error ?? "Could not invite member");
     }
@@ -315,6 +318,9 @@ export default function SettingsPage() {
             </button>
             {memberError && (
               <p className="sm:col-span-3 text-sm text-error">{memberError}</p>
+            )}
+            {memberNotice && (
+              <p className={`sm:col-span-3 text-sm ${memberNotice.includes("não pôde") ? "text-warning" : "text-success"}`}>{memberNotice}</p>
             )}
           </form>
         )}

@@ -7,6 +7,7 @@ import {
   getInvitationExpiry,
   normalizeInvitationEmail,
 } from "@/lib/workspace-invitations";
+import { sendWorkspaceInvitationEmail } from "@/lib/invitation-email";
 import {
   canManageWorkspace,
   getCurrentWorkspaceContext,
@@ -119,6 +120,8 @@ export async function POST(request: NextRequest) {
     select: { id: true },
   });
 
+  let emailSent = false;
+  let deliveryWarning: string | null = null;
   if (existingUser) {
     await prisma.workspaceMember.upsert({
       where: {
@@ -137,7 +140,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } else {
-    await prisma.workspaceInvitation.upsert({
+    const invitation = await prisma.workspaceInvitation.upsert({
       where: {
         workspaceId_email: {
           workspaceId: context.workspaceId,
@@ -160,11 +163,30 @@ export async function POST(request: NextRequest) {
         expiresAt: getInvitationExpiry(),
       },
     });
+    const [workspace, inviter] = await Promise.all([
+      prisma.workspace.findUnique({ where: { id: context.workspaceId }, select: { name: true } }),
+      prisma.user.findUnique({ where: { id: context.userId }, select: { name: true, email: true } }),
+    ]);
+    try {
+      await sendWorkspaceInvitationEmail(email, {
+        inviteUrl: buildInvitationUrl(invitation.token),
+        workspaceName: workspace?.name ?? "sua equipe",
+        inviterName: inviter?.name ?? inviter?.email ?? "A equipe",
+        role: parsed.data.role,
+      });
+      emailSent = true;
+    } catch (error) {
+      console.error("Workspace invitation email was not sent", error instanceof Error ? error.message : error);
+      deliveryWarning = "Convite criado, mas o e-mail não pôde ser enviado. Copie o link pendente e envie manualmente.";
+    }
   }
 
   return NextResponse.json({
     success: true,
     data: await getMemberPayload(context.workspaceId, context.role),
+    emailSent,
+    existingMember: Boolean(existingUser),
+    warning: deliveryWarning,
   });
 }
 
