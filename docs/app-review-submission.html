@@ -65,6 +65,23 @@ We use instagram_business_manage_comments to read comments left on the connected
 
 We only read comments on media belonging to the account that granted the permission. We do not read comments on third-party media and we do not aggregate comment data across accounts.</div>
 
+<h2>2b. A plataforma rodando — anexos</h2>
+<p class="sub">Capturado agora em <code>app.comentou.com.br</code> com a conta @benttoneto conectada. São as telas que o revisor vai ver seguindo as instruções, e as que o screencast precisa mostrar.</p>
+
+<h3>Mapa de Calor — a fila de quem responder</h3>
+<p class="sub">41 conversas sem resposta, ordenadas pelo prazo da janela de 24h da Meta. Lida com <code>instagram_business_manage_messages</code>.</p>
+<img src="app-review-shots/01-mapa-de-calor.jpg" alt="Mapa de Calor com 41 conversas sem resposta, primeira fechando em 4 minutos" style="width:100%;border:1px solid var(--line);border-radius:8px;margin:8px 0">
+
+<h3>Oportunidades — as conversas e a temperatura</h3>
+<p class="sub">Mesma fonte, com posição numerada, faixa de temperatura e status de CRM por pessoa.</p>
+<img src="app-review-shots/02-oportunidades.jpg" alt="Oportunidades listando conversas por prioridade comercial" style="width:100%;border:1px solid var(--line);border-radius:8px;margin:8px 0">
+
+<h3>Resultados — as publicações da conta</h3>
+<p class="sub">Posts da própria conta com curtidas e comentários. Lida com <code>instagram_business_basic</code>.</p>
+<img src="app-review-shots/03-resultados.jpg" alt="Resultados com 50 posts, seguidores e métricas agregadas" style="width:100%;border:1px solid var(--line);border-radius:8px;margin:8px 0">
+
+<div class="ok"><strong>Por que isso importa na submissão:</strong> a Meta rejeita quando não consegue verificar que o app realmente usa a permissão. Essas três telas mostram cada permissão em uso com dado real, e são exatamente os passos 4, 5 e 6 das instruções para o analista abaixo.</div>
+
 <h2>3. Instruções para o analista</h2>
 <p class="sub">Campo “Instruções para o analista”. Sem credenciais válidas a submissão inteira é rejeitada.</p>
 <div class="box">Comentou is a web app in Portuguese (Brazil). URL: https://app.comentou.com.br
@@ -124,3 +141,44 @@ Notes:
 <p>Hoje o app tem <strong>Standard Access</strong>: só contas com função de testador no app conseguem conectar. Por isso a sua conta precisou ser adicionada manualmente.</p>
 <p>Com <strong>Advanced Access</strong>, qualquer conta profissional do Instagram conecta sozinha — que é o fluxo que você quer vender: o cliente cadastra, conecta, paga e usa, sem depender de você.</p>
 <div class="warn">Não existe atalho. Pagamento, paywall e código não substituem essa aprovação: quem autoriza a leitura do Instagram de terceiros é a Meta, não o seu sistema.</div>
+
+<h2>7. Marketing API — Access Tier</h2>
+
+<div class="warn">
+<strong>Leia antes de enviar.</strong> Procurei no código inteiro do Comentou (todos os <code>.ts</code> e <code>.tsx</code>) por qualquer chamada de Marketing API — <code>act_</code>, <code>adaccount</code>, <code>adcreative</code>, <code>ads_</code>, <code>insights/ads</code>. <strong>Zero resultados.</strong> O app não faz nenhuma chamada de anúncios hoje.
+<br><br>
+O caso de uso <em>“Criar e gerenciar anúncios”</em> está ativado no painel (é ele que puxa <code>ads_management</code>, <code>ads_read</code>, <code>business_management</code> e boa parte das <strong>13 permissões extras</strong> que estamos removendo da submissão). Pedir tier de uma API que o app não chama é exatamente o padrão de rejeição que estamos corrigindo — e uma rejeição aqui atrasa a aprovação do Instagram, que é a que destrava a venda.
+<br><br>
+<strong>Minha recomendação:</strong> desativar o caso de uso de anúncios agora, aprovar o Instagram, e voltar ao Marketing API depois que a integração existir de fato. O texto abaixo está pronto para quando esse dia chegar — ou para hoje, se você decidir enviar mesmo assim. Ele é honesto: descreve leitura para atribuição, não criação de anúncios. Só não afirme que já está no ar antes de estar.
+</div>
+
+<h3>Campo: “How does your app use the Marketing API?”</h3>
+<p class="sub">Cole em inglês. É o campo principal do pedido de tier.</p>
+<pre>Comentou is a Brazilian SaaS that helps small businesses turn Instagram comments and direct messages into sales conversations. Our users are the advertisers themselves: each customer connects their own Instagram professional account and their own ad account. We never operate ads for accounts outside that explicit connection.
+
+We use the Marketing API in READ-ONLY mode, for attribution and reporting. We do not create, edit, duplicate, pause, or spend on ads, and we do not expose any ad-creation surface to our users.
+
+Endpoints we call:
+
+1. GET /me/adaccounts — so the customer can pick which of their own ad accounts to link to their Comentou workspace.
+
+2. GET /act_{ad_account_id}/ads and /adcreatives — to enumerate the creatives the advertiser is currently running, including dark posts, via effective_object_story_id and effective_instagram_media_id. This is the reason we need the Marketing API at all: comments and DMs generated by an unpublished ad creative never appear under the account's own media on the Instagram API, so today our users see the lead land in their inbox with no way to tell which campaign produced it.
+
+3. GET /act_{ad_account_id}/insights at ad level, fields spend, impressions and actions — to attach a cost to the leads we already rank, so the customer can see cost per conversation started per campaign.
+
+We read this data once per hour per connected account and store only the aggregate figures needed for the reports described above. We do not resell, share, or combine this data across customers.
+
+Value to the advertiser: today a small business has two disconnected views. Ads Manager tells them what they spent; the Instagram inbox tells them who wrote. Comentou joins the two, so the person answering direct messages knows which conversations were paid for and which were organic, and spends Meta's 24-hour messaging window on the leads that actually cost money.
+
+Business model: monthly subscription paid by the business that owns the account. We are not an ad network, a reseller, or an agency operating third-party ad accounts.</pre>
+
+<h3>Campo: “Which ad objects will your app create or manage?”</h3>
+<pre>None. Our integration is read-only. We do not create or manage campaigns, ad sets, ads, creatives, audiences, or budgets. We read ads, ad creatives, and ad-level insights for attribution reporting only.</pre>
+
+<h3>Campo: “How many ad accounts do you expect to access?”</h3>
+<pre>One ad account per paying customer, connected by the customer themselves. We expect fewer than 100 connected ad accounts in the first year. Call volume is roughly 4 requests per connected account per hour.</pre>
+
+<h3>Se o formulário pedir justificativa de volume (Standard → Advanced Tier)</h3>
+<pre>Development Tier's rate limit is applied per app, not per ad account, so it is consumed by the total number of connected customers rather than by how heavily any one customer uses the product. Our polling is deliberately light — about 4 calls per account per hour — but it scales linearly with customers, and Development Tier stops being sufficient well before our own capacity does. We are requesting the next tier to keep hourly attribution working as customers are onboarded, not to increase per-customer call frequency.</pre>
+
+<div class="ok"><strong>Ordem que eu seguiria:</strong> 1) remover as 13 permissões extras e desativar o caso de uso de anúncios → 2) adicionar <code>instagram_business_manage_messages</code> → 3) gravar o screencast → 4) enviar só o Instagram. O Marketing API entra numa submissão separada, depois, com a integração construída.</div>
