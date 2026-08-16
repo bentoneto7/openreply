@@ -33,6 +33,30 @@ describe("heatmap priority", () => {
     expect(queue[0].reasons).toContain("1 mensagem(ns) enviada(s) por essa pessoa");
   });
 
+  it("never presents the worker's placeholder text as something the lead wrote", () => {
+    // A linha `reveal:` guarda o literal "(button tap)" e é gravada tanto no
+    // toque no botão quanto no fallback de leitura da DM. Nem o texto nem a
+    // afirmação de toque podem chegar à tela.
+    const [lead] = buildHeatmapQueue([
+      { id: "1", instagramAccountId: "a", commenterId: "p", commenterName: null, commentId: "reveal:p", commentText: "(button tap)", matchedKeyword: null, status: "SENT", createdAt: now, automation: { name: "A" }, instagramAccount: { username: "loja" } },
+    ], now);
+    expect(lead.latestComment).toBe("");
+    expect(lead.reasons.join(" ")).not.toMatch(/toque|bot[ãa]o para receber/i);
+    expect(lead.reasons).toContain("abriu a DM com o link uma vez");
+    // Sinal fraco: sozinho não pode empurrar ninguém para lead quente.
+    expect(lead.temperature).toBe("OBSERVADOR");
+  });
+
+  it("dates a lead by its newest signal of any kind", () => {
+    const older = new Date("2026-08-10T15:00:00.000Z");
+    const [lead] = buildHeatmapQueue([
+      { id: "1", instagramAccountId: "a", commenterId: "p", commenterName: null, commentId: "c1", commentText: "preço", matchedKeyword: "PREÇO", status: "SENT", createdAt: older, automation: { name: "A" }, instagramAccount: { username: "loja" } },
+      { id: "2", instagramAccountId: "a", commenterId: "p", commenterName: null, commentId: "dm:1", commentText: "e aí?", matchedKeyword: null, status: "SENT", createdAt: now, automation: { name: "A" }, instagramAccount: { username: "loja" } },
+    ], now);
+    expect(lead.lastSeenAt).toBe(now.toISOString());
+    expect(lead.latestComment).toBe("preço"); // o texto continua sendo o do comentário
+  });
+
   it("maps scores to the product temperature bands", () => {
     expect(temperatureForScore(0)).toBe("OBSERVADOR");
     expect(temperatureForScore(9)).toBe("OBSERVADOR");
@@ -79,7 +103,7 @@ describe("heatmap priority", () => {
 
     const top = queue; // a fila já sai ordenada do mais quente para o mais frio
     expect(top.map((item) => item.commenterId)).toEqual(["ana", "bruno"]);
-    expect(top[0]).toMatchObject({ temperature: "PRIORIDADE", score: 88 });
+    expect(top[0]).toMatchObject({ temperature: "PRIORIDADE", score: 74 });
     expect(top[0].latestComment).toBe("preço"); // texto vem do comentário, não da DM
     expect(top[1].temperature).toBe("OBSERVADOR");
     expect(countByTemperature(queue)).toMatchObject({ PRIORIDADE: 1, OBSERVADOR: 1, QUENTE: 0 });

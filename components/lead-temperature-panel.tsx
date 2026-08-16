@@ -33,9 +33,13 @@ interface TopLead {
 }
 
 interface Overview {
-  topEngaged: TopLead[];
+  queue: TopLead[];
   temperatureCounts: Record<LeadTemperature, number>;
 }
+
+// Quantas pessoas a lista mostra de uma vez. O chip de cada temperatura diz o
+// total; isto é só o quanto cabe na tela sem virar uma segunda fila.
+const VISIBLE = 12;
 
 const dateFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
@@ -50,8 +54,9 @@ export default function LeadTemperaturePanel({ accountId }: { accountId: string 
   useEffect(() => {
     if (!accountId) return;
     const controller = new AbortController();
-    setLoading(true);
-    setError(false);
+    // Sem setState aqui: trocar de conta remonta o painel (key no pai), então o
+    // estado inicial já é "carregando". Só o retry precisa reagendá-lo, e isso
+    // acontece no handler.
     fetch(`/api/heatmap/overview?period=7d&instagramAccountId=${encodeURIComponent(accountId)}`, { signal: controller.signal })
       .then((response) => { if (!response.ok) throw new Error("Falha"); return response.json(); })
       .then((payload) => setData(payload.data))
@@ -60,10 +65,12 @@ export default function LeadTemperaturePanel({ accountId }: { accountId: string 
     return () => controller.abort();
   }, [accountId, retry]);
 
+  function tryAgain() { setLoading(true); setError(false); setRetry((value) => value + 1); }
+
   async function updateStatus(lead: TopLead, status: LeadStatusValue) {
     setSaving(lead.key);
     // Otimista: o select já mostra o novo estado enquanto a escrita acontece.
-    setData((current) => current && { ...current, topEngaged: current.topEngaged.map((item) => item.key === lead.key ? { ...item, leadStatus: status } : item) });
+    setData((current) => current && { ...current, queue: current.queue.map((item) => item.key === lead.key ? { ...item, leadStatus: status } : item) });
     try {
       const response = await fetch("/api/leads", {
         method: "PATCH",
@@ -74,7 +81,7 @@ export default function LeadTemperaturePanel({ accountId }: { accountId: string 
     } catch {
       // Reverter é mais honesto do que deixar a tela afirmar um estado que o
       // banco não tem.
-      setData((current) => current && { ...current, topEngaged: current.topEngaged.map((item) => item.key === lead.key ? { ...item, leadStatus: lead.leadStatus } : item) });
+      setData((current) => current && { ...current, queue: current.queue.map((item) => item.key === lead.key ? { ...item, leadStatus: lead.leadStatus } : item) });
       setError(true);
     } finally {
       setSaving(null);
@@ -83,8 +90,9 @@ export default function LeadTemperaturePanel({ accountId }: { accountId: string 
 
   if (!accountId) return null;
 
-  const leads = data?.topEngaged ?? [];
-  const shown = filter ? leads.filter((lead) => lead.temperature === filter) : leads;
+  const leads = data?.queue ?? [];
+  const matching = filter ? leads.filter((lead) => lead.temperature === filter) : leads;
+  const shown = matching.slice(0, VISIBLE);
 
   return (
     <details open className="rounded border border-border bg-surface">
@@ -104,7 +112,7 @@ export default function LeadTemperaturePanel({ accountId }: { accountId: string 
           <div className="mt-3 flex items-center gap-3 text-sm text-error">
             <AlertCircle className="h-4 w-4" aria-hidden="true" />
             Não foi possível carregar ou salvar.
-            <button onClick={() => setRetry((value) => value + 1)} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-foreground">
+            <button onClick={tryAgain} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-foreground">
               <RefreshCw className="h-3 w-3" aria-hidden="true" />Tentar novamente
             </button>
           </div>
@@ -163,6 +171,12 @@ export default function LeadTemperaturePanel({ accountId }: { accountId: string 
                   </li>
                 ))}
               </ul>
+            )}
+
+            {matching.length > shown.length && (
+              <p className="mt-2 text-xs text-muted">
+                Mostrando {shown.length} de {matching.length}. Veja a fila completa no <a href="/heatmap" className="underline">Mapa de Calor</a>.
+              </p>
             )}
 
             <p className="mt-3 text-xs leading-5 text-muted">

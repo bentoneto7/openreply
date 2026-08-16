@@ -16,8 +16,11 @@ export const LEAD_STATUS_LABEL: Record<LeadStatusValue, string> = {
   PERDIDO: "Perdido",
 };
 
-/** Estados que ainda pedem alguma ação humana. */
-export const OPEN_LEAD_STATUSES: LeadStatusValue[] = ["NOVO", "ABORDADO", "RESPONDEU", "NEGOCIANDO"];
+/**
+ * Leads já trabalhados e ainda em aberto — o pipeline de verdade. NOVO fica de
+ * fora: ninguém tocou nele ainda.
+ */
+export const IN_PROGRESS_LEAD_STATUSES: LeadStatusValue[] = ["ABORDADO", "RESPONDEU", "NEGOCIANDO"];
 
 export function isLeadStatus(value: unknown): value is LeadStatusValue {
   return typeof value === "string" && (LEAD_STATUSES as readonly string[]).includes(value);

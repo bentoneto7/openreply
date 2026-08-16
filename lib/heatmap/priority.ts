@@ -72,7 +72,12 @@ const SIGNAL_POINTS: Record<SignalKind, { relationship: number; intent: number }
   comment: { relationship: 2, intent: 0 },
   keywordComment: { relationship: 2, intent: 6 },
   inboundDm: { relationship: 3, intent: 4 },
-  linkReveal: { relationship: 2, intent: 6 },
+  // Vale pouco de propósito. A linha `reveal:` é gravada tanto quando a pessoa
+  // toca no botão quanto pelo fallback de leitura da DM de abertura, e nada nela
+  // distingue os dois casos. Um toque é intenção alta, uma leitura não é — na
+  // dúvida, pontuar pelo que é certo: a DM foi aberta. Se um dia o worker
+  // gravar os dois casos separadamente, o toque real merece intent 6.
+  linkReveal: { relationship: 1, intent: 1 },
 };
 
 /**
@@ -125,10 +130,12 @@ export function buildHeatmapQueue(logs: HeatmapLog[], now = new Date()): Heatmap
     for (const log of ordered) if (!distinctSignals.has(log.commentId)) distinctSignals.set(log.commentId, log);
     const signals = [...distinctSignals.values()];
 
-    // O texto exibido tem que ser o do comentário; DM e clique só entram como
-    // evidência quando não há comentário nenhum.
+    // O texto exibido tem que ser algo que a pessoa escreveu: comentário, ou a
+    // DM que ela mandou. Linhas `reveal:` nunca servem — o worker grava nelas o
+    // literal "(button tap)", que vazaria para a tela como se fosse fala dela.
     const comments = signals.filter((item) => classifySignal(item) === "comment" || classifySignal(item) === "keywordComment");
-    const latest = comments[0] ?? ordered[0];
+    const written = comments[0] ?? signals.find((item) => classifySignal(item) === "inboundDm");
+    const latest = written ?? ordered[0];
     const distinctComments = comments.length;
     const keywordCount = comments.filter((item) => Boolean(item.matchedKeyword)).length;
     const inboundDms = signals.filter((item) => classifySignal(item) === "inboundDm").length;
@@ -145,20 +152,27 @@ export function buildHeatmapQueue(logs: HeatmapLog[], now = new Date()): Heatmap
     const score = Math.min(100, Math.round(SCORE_SCALE * (0.35 * relationship + 0.65 * intent)));
     const temperature = temperatureForScore(score);
 
-    const ageHours = Math.max(0, (now.getTime() - latest.createdAt.getTime()) / 3_600_000);
+    // A recência é a do sinal mais novo de qualquer tipo — uma DM de hoje conta
+    // como interação de hoje, mesmo que o último comentário seja da semana
+    // passada.
+    const lastSignal = ordered[0];
+    const ageHours = Math.max(0, (now.getTime() - lastSignal.createdAt.getTime()) / 3_600_000);
     const reasons = [
       keywordCount > 0 ? `${keywordCount} sinal(is) com palavra-chave` : "comentário que acionou automação",
       `${distinctComments} comentário${distinctComments === 1 ? "" : "s"} distinto${distinctComments === 1 ? "" : "s"} observado${distinctComments === 1 ? "" : "s"}`,
       ageHours <= 24 ? "interação nas últimas 24 horas" : "interação recente no período",
     ];
     if (inboundDms > 0) reasons.push(`${inboundDms} mensagem(ns) enviada(s) por essa pessoa`);
-    if (linkReveals > 0) reasons.push(`${linkReveals} toque(s) no botão para receber o link`);
+    // Não afirmar "tocou no botão": a mesma linha é gravada quando a DM apenas
+    // foi lida. Abrir a DM é o que dá para garantir.
+    if (linkReveals > 0) reasons.push(`abriu a DM com o link ${linkReveals === 1 ? "uma vez" : `${linkReveals} vezes`}`);
 
     return {
       key, instagramAccountId: latest.instagramAccountId, instagramUsername: latest.instagramAccount.username,
-      commenterId: latest.commenterId, commenterName: latest.commenterName, latestComment: latest.commentText,
+      commenterId: latest.commenterId, commenterName: latest.commenterName,
+      latestComment: written ? latest.commentText : "",
       latestKeyword: latest.matchedKeyword, automationName: latest.automation.name,
-      lastSeenAt: latest.createdAt.toISOString(), signalCount: distinctComments,
+      lastSeenAt: lastSignal.createdAt.toISOString(), signalCount: distinctComments,
       sentCount: group.filter((item) => item.status === "SENT").length,
       score, temperature, reasons,
     };

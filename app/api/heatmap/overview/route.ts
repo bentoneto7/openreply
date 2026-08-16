@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentWorkspaceId } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 import { buildHeatmapQueue, countByTemperature, isHeatmapPeriod, periodStart } from "@/lib/heatmap/priority";
-import { OPEN_LEAD_STATUSES } from "@/lib/crm/lead-status";
+import { IN_PROGRESS_LEAD_STATUSES } from "@/lib/crm/lead-status";
 
 export const dynamic = "force-dynamic";
+
+const SIGNAL_PREFIXES = ["dm:", "reveal:"];
 
 export async function GET(request: NextRequest) {
   const workspaceId = await getCurrentWorkspaceId();
@@ -22,42 +24,62 @@ export async function GET(request: NextRequest) {
 
   const accountFilter = account ? { instagramAccountId: account.id } : {};
   const since = periodStart(period);
-  const [accounts, logs, leads] = await Promise.all([
+  const window = { workspaceId, createdAt: { gte: since }, ...accountFilter };
+  const include = { automation: { select: { name: true } }, instagramAccount: { select: { username: true } } };
+
+  // Comentários e sinais de DM têm janelas separadas de propósito. Numa única
+  // query com take: 500, uma conta com muitas DMs empurraria os comentários
+  // para fora da amostra e derrubaria "Comentários acionados" sem aviso.
+  const [accounts, comments, dmSignals] = await Promise.all([
     prisma.instagramAccount.findMany({ where: { workspaceId }, orderBy: { connectedAt: "desc" }, select: { id: true, username: true, instagramId: true, name: true } }),
-    // DMs recebidas e cliques no botão entram junto: são os sinais de maior
-    // intenção que existem hoje, e ficar sem eles subestima o lead quente.
     prisma.dmLog.findMany({
-      where: { workspaceId, createdAt: { gte: since }, ...accountFilter },
-      orderBy: { createdAt: "desc" }, take: 500,
-      include: { automation: { select: { name: true } }, instagramAccount: { select: { username: true } } },
+      where: { ...window, AND: SIGNAL_PREFIXES.map((prefix) => ({ commentId: { not: { startsWith: prefix } } })) },
+      orderBy: { createdAt: "desc" }, take: 500, include,
     }),
-    prisma.lead.findMany({
-      where: { workspaceId, ...accountFilter },
-      select: { instagramAccountId: true, commenterId: true, status: true, note: true, lastContactedAt: true },
+    prisma.dmLog.findMany({
+      where: { ...window, OR: SIGNAL_PREFIXES.map((prefix) => ({ commentId: { startsWith: prefix } })) },
+      orderBy: { createdAt: "desc" }, take: 500, include,
     }),
   ]);
 
+  const logs = [...comments, ...dmSignals];
+  const queue = buildHeatmapQueue(logs);
+
+  // Só os leads de quem está na fila: buscar o workspace inteiro cresceria sem
+  // teto conforme o CRM é usado.
+  const leads = queue.length === 0 ? [] : await prisma.lead.findMany({
+    where: { workspaceId, commenterId: { in: [...new Set(queue.map((item) => item.commenterId))] } },
+    select: { instagramAccountId: true, commenterId: true, status: true, note: true, lastContactedAt: true },
+  });
   const leadByKey = new Map(leads.map((lead) => [`${lead.instagramAccountId}:${lead.commenterId}`, lead]));
-  const queue = buildHeatmapQueue(logs).map((item) => {
+  const withLeads = queue.map((item) => {
     const lead = leadByKey.get(item.key);
     return { ...item, leadStatus: lead?.status ?? "NOVO", leadNote: lead?.note ?? null, lastContactedAt: lead?.lastContactedAt?.toISOString() ?? null };
   });
-  const uniquePeople = new Set(logs.map((log) => `${log.instagramAccountId}:${log.commenterId}`)).size;
-  const comments = logs.filter((log) => !log.commentId.startsWith("dm:") && !log.commentId.startsWith("reveal:"));
+
+  // O pipeline não é recortado pelo período: um lead em negociação há quatro
+  // meses continua em negociação hoje, mesmo sem sinal novo.
+  const openOpportunities = await prisma.lead.count({
+    where: { workspaceId, ...accountFilter, status: { in: IN_PROGRESS_LEAD_STATUSES } },
+  });
+
+  // Contagens e lista saem do mesmo recorte: um chip dizendo "47 pessoas" ao
+  // lado de uma lista que só consegue mostrar parte delas é um número que a
+  // própria tela desmente.
+  const visible = withLeads.slice(0, 100);
 
   return NextResponse.json({ success: true, data: {
-    period, accounts, queue: queue.slice(0, 100), truncated: logs.length === 500,
-    // A fila já vem ordenada por score, então o topo dela é exatamente quem
-    // mais interagiu.
-    topEngaged: queue.slice(0, 12),
-    temperatureCounts: countByTemperature(queue),
+    period, accounts,
+    queue: visible,
+    truncated: comments.length === 500 || dmSignals.length === 500 || withLeads.length > visible.length,
+    temperatureCounts: countByTemperature(visible),
     metrics: {
       triggeredComments: new Set(comments.map((log) => `${log.instagramAccountId}:${log.commentId}`)).size,
-      uniquePeople,
+      uniquePeople: new Set(logs.map((log) => `${log.instagramAccountId}:${log.commenterId}`)).size,
       // Quem já foi trabalhado no CRM sai da fila de espera: o que sobra é o
       // que realmente aguarda alguém.
-      awaitingReview: queue.filter((item) => item.leadStatus === "NOVO").length,
-      openOpportunities: queue.filter((item) => OPEN_LEAD_STATUSES.includes(item.leadStatus) && item.leadStatus !== "NOVO").length,
+      awaitingReview: visible.filter((item) => item.leadStatus === "NOVO").length,
+      openOpportunities,
       automaticDmsSent: logs.filter((log) => log.status === "SENT").length,
     },
   } }, { headers: { "Cache-Control": "no-store" } });

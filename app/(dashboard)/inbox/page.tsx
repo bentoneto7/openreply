@@ -271,7 +271,9 @@ export default function InboxPage() {
         )}
       </div>
 
-      <LeadTemperaturePanel accountId={selectedAccountId} />
+      {/* key: trocar de conta remonta o painel, que é o que devolve o estado
+          de carregamento sem um setState dentro do effect. */}
+      <LeadTemperaturePanel key={selectedAccountId} accountId={selectedAccountId} />
 
       <div className="grid h-[calc(100dvh-11rem)] grid-cols-1 overflow-hidden rounded border border-border sm:grid-cols-[300px_1fr]">
         {/* Conversation list. On mobile it takes the full pane and is hidden

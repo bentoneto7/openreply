@@ -14,21 +14,8 @@ const updateLeadSchema = z.object({
   note: z.string().max(2000).nullish(),
 });
 
-export async function GET(request: NextRequest) {
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) return NextResponse.json({ success: false, error: "Não autorizado" }, { status: 401 });
-
-  const requestedAccountId = request.nextUrl.searchParams.get("instagramAccountId");
-  const accountFilter = requestedAccountId && requestedAccountId !== "all" ? { instagramAccountId: requestedAccountId } : {};
-  const leads = await prisma.lead.findMany({
-    where: { workspaceId, ...accountFilter },
-    orderBy: { updatedAt: "desc" },
-    select: { instagramAccountId: true, commenterId: true, commenterName: true, status: true, note: true, lastContactedAt: true, updatedAt: true },
-  });
-
-  return NextResponse.json({ success: true, data: { leads } }, { headers: { "Cache-Control": "no-store" } });
-}
-
+// Só PATCH: a leitura dos leads vem junto da fila em /api/heatmap/overview, que
+// é onde eles são exibidos. Um GET aqui nasceria sem nenhum consumidor.
 export async function PATCH(request: NextRequest) {
   const workspaceId = await getCurrentWorkspaceId();
   if (!workspaceId) return NextResponse.json({ success: false, error: "Não autorizado" }, { status: 401 });
