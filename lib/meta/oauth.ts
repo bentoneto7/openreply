@@ -7,10 +7,10 @@ import {
 } from "crypto";
 import { getEncryptionKeyHex, requireEnv } from "@/lib/env";
 
-// www.instagram.com is the authorize host for Instagram Business Login; the
-// api.instagram.com one belongs to the retired Basic Display API and answers
-// "Invalid platform app" for an Instagram App ID. Meta's own dashboard builds
-// the embedded login URL against www. The token exchange below stays on api.
+// www is the documented authorize host for Instagram Business Login, and what
+// Meta's own dashboard puts in the embedded login URL. api.instagram.com still
+// 302s here, but it drops the percent-encoding on redirect_uri along the way —
+// not worth the hop. The token exchange below stays on api.
 const INSTAGRAM_OAUTH_URL = "https://www.instagram.com/oauth/authorize";
 const INSTAGRAM_TOKEN_URL = "https://api.instagram.com/oauth/access_token";
 const ALGORITHM = "aes-256-gcm";
