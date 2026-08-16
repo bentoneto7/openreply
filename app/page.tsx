@@ -42,8 +42,8 @@ const DISPLAY =
 const H2 =
   "font-display font-black leading-[1.02] tracking-[-0.025em] text-[clamp(1.9rem,3.8vw,3rem)] text-white";
 const H3 = "text-lg font-bold leading-[1.3] tracking-[-0.012em] text-white sm:text-xl";
-const LEAD = "text-pretty text-base leading-[1.65] text-white/60 sm:text-lg";
-const BODY = "text-sm leading-6 text-white/55";
+const LEAD = "text-pretty text-base leading-[1.65] text-white/70 sm:text-lg";
+const BODY = "text-sm leading-6 text-white/70";
 const EYEBROW = "font-mono text-[0.6875rem] uppercase tracking-[0.18em]";
 
 const CONTAINER = "mx-auto w-full max-w-6xl px-5 sm:px-8";
@@ -58,7 +58,7 @@ const CTA_GHOST =
 function Badge({ children }: { children: React.ReactNode }) {
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-white/70 ${EYEBROW}`}
+      className={`inline-flex items-center gap-2 rounded-full border border-violet/35 bg-violet/12 px-4 py-2 text-violet-200 ${EYEBROW}`}
     >
       {children}
     </span>
@@ -225,7 +225,7 @@ function HeatmapMockup() {
         <h2 id="hm-title" className={H3}>
           Mapa de Calor · últimos 7 dias
         </h2>
-        <span className={`${EYEBROW} text-white/40`}>Exemplo de interface</span>
+        <span className={`${EYEBROW} text-white/55`}>Exemplo de interface</span>
       </figcaption>
 
       <svg
@@ -371,7 +371,7 @@ function HeatmapMockup() {
         </tbody>
       </table>
 
-      <p className="mt-4 text-xs leading-5 text-white/40">
+      <p className="mt-4 text-xs leading-5 text-white/55">
         Dados ilustrativos. Priorização sugerida a partir de interações
         observadas — não é previsão de compra.
       </p>
@@ -386,13 +386,13 @@ function LeadCard() {
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden="true"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet/20 text-xs font-bold text-violet"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet/25 text-xs font-bold text-violet-200"
           >
             AS
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-white">@ana.studio</p>
-            <p className="truncate text-xs text-white/45">Curso de fotografia</p>
+            <p className="truncate text-xs text-white/60">Curso de fotografia</p>
           </div>
         </div>
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-400/25 bg-red-400/10 px-2.5 py-1 text-xs font-bold text-red-300">
@@ -406,7 +406,7 @@ function LeadCard() {
           <span className="font-display text-4xl font-black leading-none tracking-[-0.03em] tabular-nums text-white">
             88
           </span>
-          <span className="text-sm font-semibold text-white/45">/100</span>
+          <span className="text-sm font-semibold text-white/60">/100</span>
           <span className="sr-only">de intenção comercial</span>
         </p>
         <p className="inline-flex items-center gap-1.5 text-xs font-bold text-red-300">
@@ -423,7 +423,7 @@ function LeadCard() {
         <p className="text-sm leading-6 text-white/80">
           “Quanto custa a turma de março? Consigo parcelar?”
         </p>
-        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/45">
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/60">
           <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
           Comentário no Reel “Bastidores”
           <span aria-hidden="true">·</span>
@@ -447,7 +447,7 @@ function ScoreBreakdown() {
             className={`inline-flex min-w-[3.25rem] shrink-0 items-center justify-center gap-0.5 rounded-full px-2 py-1 text-xs font-black tabular-nums ${
               row.positive
                 ? "bg-green-400/12 text-green-300"
-                : "bg-white/10 text-white/60"
+                : "bg-white/10 text-white/70"
             }`}
           >
             {row.positive ? (
@@ -464,7 +464,7 @@ function ScoreBreakdown() {
             <span className="block text-sm font-semibold leading-5 text-white/90">
               {row.label}
             </span>
-            <span className="block text-xs text-white/45">{row.meta}</span>
+            <span className="block text-xs text-white/60">{row.meta}</span>
           </span>
         </li>
       ))}
@@ -483,13 +483,13 @@ export default function Home() {
           <nav className="flex items-center gap-1 sm:gap-2">
             <a
               href="#mapa-de-calor"
-              className={`hidden min-h-11 items-center rounded-full px-4 text-white/60 transition-colors duration-150 hover:text-white lg:inline-flex ${EYEBROW}`}
+              className={`hidden min-h-11 items-center rounded-full px-4 text-white/70 transition-colors duration-150 hover:text-white lg:inline-flex ${EYEBROW}`}
             >
               Como funciona
             </a>
             <Link
               href="/login"
-              className={`hidden min-h-11 items-center rounded-full px-4 text-white/60 transition-colors duration-150 hover:text-white sm:inline-flex ${EYEBROW}`}
+              className={`hidden min-h-11 items-center rounded-full px-4 text-white/70 transition-colors duration-150 hover:text-white sm:inline-flex ${EYEBROW}`}
             >
               Entrar
             </Link>
@@ -526,7 +526,8 @@ export default function Home() {
               Inteligência de intenção para Instagram
             </Badge>
             <h1 className={`mx-auto mt-8 max-w-[18ch] ${DISPLAY}`}>
-              Você sabe quem comentou. Não sabe quem abordar.
+              Você sabe quem comentou.{" "}
+              <span className="text-gradient">Não sabe quem abordar.</span>
             </h1>
             <p className={`mx-auto mt-7 max-w-[62ch] ${LEAD}`}>
               A Comentou lê as interações públicas do seu Instagram pela API
@@ -545,7 +546,7 @@ export default function Home() {
             </div>
             <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
               {trustChips.map(({ icon: Icon, label }) => (
-                <li key={label} className={`flex items-center gap-2 text-white/50 ${EYEBROW}`}>
+                <li key={label} className={`flex items-center gap-2 text-white/60 ${EYEBROW}`}>
                   <Icon className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden="true" />
                   {label}
                 </li>
@@ -569,7 +570,7 @@ export default function Home() {
           <div className={`${CONTAINER} mt-14`}>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {automatic.map(({ title, body }) => (
-                <article key={title} className="card-night rounded-2xl p-6">
+                <article key={title} className="card-night lit-edge relative rounded-2xl p-6">
                   <span
                     aria-hidden="true"
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-green-400/12"
@@ -604,8 +605,8 @@ export default function Home() {
           <div className={`${CONTAINER} relative mt-14`}>
             <div className="grid gap-4 lg:grid-cols-3">
               {/* Quem abordar agora — com o card de lead */}
-              <article className="card-night rounded-3xl p-6 lg:col-span-2">
-                <p className={`${EYEBROW} text-violet`}>Quem devo abordar agora?</p>
+              <article className="card-night lit-edge relative rounded-3xl p-6 lg:col-span-2">
+                <p className={`${EYEBROW} text-violet-300`}>Quem devo abordar agora?</p>
                 <h3 className={`mt-4 ${H3}`}>A fila é ordenada por intenção, não por horário</h3>
                 <p className={`mt-3 max-w-[54ch] ${BODY}`}>
                   Quem subiu de temperatura hoje aparece antes de quem comentou
@@ -618,8 +619,8 @@ export default function Home() {
               </article>
 
               {/* Por que — breakdown */}
-              <article className="card-night rounded-3xl p-6">
-                <p className={`${EYEBROW} text-violet`}>Por que devo abordar?</p>
+              <article className="card-night lit-edge relative rounded-3xl p-6">
+                <p className={`${EYEBROW} text-violet-300`}>Por que devo abordar?</p>
                 <h3 className={`mt-4 ${H3}`}>Nenhum número aparece sem explicação</h3>
                 <p className={`mt-3 ${BODY}`}>
                   A nota vem desmontada: cada evento, quanto valeu e quanto já
@@ -631,8 +632,10 @@ export default function Home() {
               </article>
 
               {/* Dois scores */}
-              <article className="card-night rounded-3xl p-6">
-                <Layers className="h-6 w-6 text-sky" strokeWidth={1.75} aria-hidden="true" />
+              <article className="card-night lit-edge relative rounded-3xl p-6">
+                <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-xl border border-sky-400/25 bg-sky-400/12">
+                  <Layers className="h-5 w-5 text-sky-300" strokeWidth={2} />
+                </span>
                 <h3 className={`mt-5 ${H3}`}>Relacionamento e intenção, separados</h3>
                 <p className={`mt-3 ${BODY}`}>
                   Gostar de você e querer comprar de você não são a mesma coisa.
@@ -642,8 +645,10 @@ export default function Home() {
               </article>
 
               {/* Afinidade */}
-              <article className="card-night rounded-3xl p-6">
-                <ListChecks className="h-6 w-6 text-sky" strokeWidth={1.75} aria-hidden="true" />
+              <article className="card-night lit-edge relative rounded-3xl p-6">
+                <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-400/12">
+                  <ListChecks className="h-5 w-5 text-violet-300" strokeWidth={2} />
+                </span>
                 <h3 className={`mt-5 ${H3}`}>Sobre qual assunto conversar</h3>
                 <p className={`mt-3 ${BODY}`}>
                   A afinidade por tema mostra em quais conteúdos a pessoa
@@ -653,10 +658,14 @@ export default function Home() {
               </article>
 
               {/* Automático vs humano */}
-              <article className="card-night rounded-3xl p-6">
-                <div className="flex gap-3">
-                  <Bot className="h-6 w-6 text-sky" strokeWidth={1.75} aria-hidden="true" />
-                  <UserCheck className="h-6 w-6 text-sky" strokeWidth={1.75} aria-hidden="true" />
+              <article className="card-night lit-edge relative rounded-3xl p-6">
+                <div className="flex gap-2">
+                  <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-xl border border-sky-400/25 bg-sky-400/12">
+                    <Bot className="h-5 w-5 text-sky-300" strokeWidth={2} />
+                  </span>
+                  <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-xl border border-green-400/25 bg-green-400/12">
+                    <UserCheck className="h-5 w-5 text-green-300" strokeWidth={2} />
+                  </span>
                 </div>
                 <h3 className={`mt-5 ${H3}`}>Automático não conta como abordagem</h3>
                 <p className={`mt-3 ${BODY}`}>
@@ -684,7 +693,7 @@ export default function Home() {
           <div className={`${CONTAINER} mt-14`}>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {temperatures.map(({ label, icon: Icon, chip, body }) => (
-                <article key={label} className="card-night rounded-2xl p-6">
+                <article key={label} className="card-night lit-edge relative rounded-2xl p-6">
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${chip}`}
                   >
@@ -715,12 +724,12 @@ export default function Home() {
           <div className={`${CONTAINER} mt-14`}>
             <div className="grid gap-4 lg:grid-cols-2">
               <article className="rounded-3xl border border-white/8 bg-white/[0.02] p-6 sm:p-8">
-                <p className={`${EYEBROW} text-white/40`}>Como costuma ser</p>
+                <p className={`${EYEBROW} text-white/55`}>Como costuma ser</p>
                 <h3 className={`mt-4 ${H3}`}>A fila é o relógio</h3>
                 <ul className="mt-6 space-y-4">
                   {beforeAfter.before.map((item) => (
-                    <li key={item} className="flex gap-3 border-t border-white/8 pt-4 text-sm leading-6 text-white/45">
-                      <X className="mt-0.5 h-4 w-4 shrink-0 text-white/30" strokeWidth={2.5} aria-hidden="true" />
+                    <li key={item} className="flex gap-3 border-t border-white/8 pt-4 text-sm leading-6 text-white/60">
+                      <X className="mt-0.5 h-4 w-4 shrink-0 text-white/55" strokeWidth={2.5} aria-hidden="true" />
                       {item}
                     </li>
                   ))}
@@ -729,7 +738,7 @@ export default function Home() {
 
               <article className="relative overflow-hidden rounded-3xl border border-violet/25 bg-violet/[0.07] p-6 sm:p-8">
                 <div className="orb right-[-6rem] top-[-6rem] h-64 w-64 bg-violet/35" aria-hidden="true" />
-                <p className={`${EYEBROW} relative text-violet`}>Com a Comentou</p>
+                <p className={`${EYEBROW} relative text-violet-300`}>Com a Comentou</p>
                 <h3 className={`relative mt-4 ${H3}`}>A fila é a intenção</h3>
                 <ul className="relative mt-6 space-y-4">
                   {beforeAfter.after.map((item) => (
@@ -773,13 +782,13 @@ export default function Home() {
                     />
                   </div>
                   <div className="absolute inset-x-0 bottom-0 p-6">
-                    <p className={`${EYEBROW} text-violet`}>{tag}</p>
+                    <p className={`${EYEBROW} text-violet-300`}>{tag}</p>
                     <p className="mt-3 text-sm leading-6 text-white/75">{body}</p>
                   </div>
                 </article>
               ))}
             </div>
-            <p className="mt-6 text-center text-xs text-white/35">
+            <p className="mt-6 text-center text-xs text-white/55">
               Imagens ilustrativas. Não representam clientes reais nem constituem
               depoimento.
             </p>
@@ -851,8 +860,8 @@ export default function Home() {
           <div className={`${CONTAINER} mt-14`}>
             <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {steps.map(({ number, title, body }) => (
-                <li key={number} className="card-night rounded-2xl p-6">
-                  <p className="font-display text-3xl font-black tabular-nums text-violet">
+                <li key={number} className="card-night lit-edge relative rounded-2xl p-6">
+                  <p className="text-gradient font-display text-3xl font-black tabular-nums">
                     {number}
                   </p>
                   <h3 className="mt-4 text-base font-bold text-white">{title}</h3>
@@ -860,7 +869,7 @@ export default function Home() {
                 </li>
               ))}
             </ol>
-            <p className="mt-8 text-center text-xs leading-5 text-white/40">
+            <p className="mt-8 text-center text-xs leading-5 text-white/55">
               Contas profissionais do Instagram (Comercial ou Criador) são
               obrigatórias, porque só elas recebem os eventos pela API oficial da
               Meta.
@@ -890,9 +899,9 @@ export default function Home() {
               {limits.map((limit) => (
                 <li
                   key={limit}
-                  className="flex gap-3 rounded-2xl border border-white/8 bg-white/[0.02] p-5 text-sm leading-6 text-white/50"
+                  className="flex gap-3 rounded-2xl border border-white/8 bg-white/[0.02] p-5 text-sm leading-6 text-white/60"
                 >
-                  <X className="mt-0.5 h-4 w-4 shrink-0 text-white/30" strokeWidth={2.5} aria-hidden="true" />
+                  <X className="mt-0.5 h-4 w-4 shrink-0 text-white/55" strokeWidth={2.5} aria-hidden="true" />
                   {limit}
                 </li>
               ))}
@@ -957,7 +966,7 @@ export default function Home() {
                 Já tenho conta
               </Link>
             </div>
-            <p className={`mt-8 text-white/40 ${EYEBROW}`}>
+            <p className={`mt-8 text-white/55 ${EYEBROW}`}>
               Cadastro por e-mail · Instagram é conectado depois, dentro da plataforma
             </p>
           </div>
@@ -969,19 +978,19 @@ export default function Home() {
           <div className="flex flex-col gap-8 border-b border-white/10 pb-10 sm:flex-row sm:items-center sm:justify-between">
             <BrandLogo className="h-auto w-32 brightness-0 invert" />
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-              <Link href="/privacy" className={`-m-2 p-2 text-white/50 hover:text-white ${EYEBROW}`}>
+              <Link href="/privacy" className={`-m-2 p-2 text-white/60 hover:text-white ${EYEBROW}`}>
                 Privacidade
               </Link>
-              <Link href="/terms" className={`-m-2 p-2 text-white/50 hover:text-white ${EYEBROW}`}>
+              <Link href="/terms" className={`-m-2 p-2 text-white/60 hover:text-white ${EYEBROW}`}>
                 Termos de uso
               </Link>
-              <Link href="/login" className={`-m-2 p-2 text-white/50 hover:text-white ${EYEBROW}`}>
+              <Link href="/login" className={`-m-2 p-2 text-white/60 hover:text-white ${EYEBROW}`}>
                 Entrar
               </Link>
             </div>
           </div>
 
-          <div className="mt-10 max-w-[88ch] space-y-4 text-xs leading-5 text-white/40">
+          <div className="mt-10 max-w-[88ch] space-y-4 text-xs leading-5 text-white/55">
             <p>
               A Comentou é uma plataforma de organização e priorização de
               relacionamento comercial no Instagram. Ela captura exclusivamente

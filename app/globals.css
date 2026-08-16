@@ -126,6 +126,44 @@ select:focus-visible {
     rgb(255 255 255 / 0.02)
   );
   border: 1px solid rgb(255 255 255 / 0.1);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.card-night:hover {
+  border-color: rgb(255 255 255 / 0.22);
+  box-shadow: 0 0 0 1px rgb(139 92 246 / 0.12), 0 18px 50px -24px rgb(139 92 246 / 0.5);
+}
+
+/* A lit seam along the top edge of a card. Requires position: relative on the
+   card; decorative only. */
+.lit-edge::before {
+  content: "";
+  position: absolute;
+  inset-inline: 2rem;
+  top: -1px;
+  height: 1px;
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgb(167 139 250 / 0.75),
+    transparent
+  );
+}
+
+/* Headline accent. Large bold text only — sky and violet both clear 4.8:1 on
+   --color-night, so the gradient stays legible across its whole run. */
+.text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    #7dd3fc 0%,
+    var(--color-sky) 35%,
+    var(--color-violet) 75%,
+    #e879f9 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Panel — flat container. Replaces .glass / .glass-strong. */
