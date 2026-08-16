@@ -19,48 +19,25 @@
   --font-display: var(--font-archivo), var(--font-plus-jakarta), system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "Consolas", monospace;
 
-  /* Landing color blocking. Full-bleed fields, not surfaces — these are only
-     ever used as a section background with light type on top, so each one is
-     paired below with the text color that clears AA against it. */
-  --color-field: #1d4ed8; /* white on it: 8.59:1 */
-  --color-field-deep: #172554; /* white on it: 15.8:1 */
-  --color-ink: #0b1220; /* white on it: 18.9:1 */
-  --color-cream: #f1f0ea; /* foreground on it: 15.2:1 */
+  /* Landing palette. The app is light-only; the landing is the one dark
+     surface, so these tokens live here and are used nowhere else. White on
+     --color-night is 19.6:1, white/65 still clears AA for body copy. */
+  --color-night: #06060f;
+  --color-night-2: #0b0b1a;
+  --color-violet: #8b5cf6;
+  --color-sky: #3b82f6;
   --color-highlight: #facc15; /* accent stroke only, never text on light */
 
-  /* Temperatura de lead — escala divergente (quente ↔ frio) mais um estado de
-     retorno fora do eixo. `ink` é a única variante aprovada para texto; `mark`
-     é para marcador de gráfico (>= 3:1, validado para deuteranopia).
-     Nunca usar a cor sozinha: todo estado carrega ícone + rótulo textual.
-     Accent fica reservado a interativo/marca e não representa temperatura. */
-  --color-hot-surface: #fef2f2;
-  --color-hot-border: #fecaca;
-  --color-hot-ink: #b91c1c;
-  --color-hot-mark: #b91c1c;
-
-  --color-warming-surface: #fffbeb;
-  --color-warming-border: #fde68a;
-  --color-warming-ink: #92400e;
-  --color-warming-mark: #c07d05;
-
-  --color-steady-surface: #f1f5f9;
-  --color-steady-border: #cbd5e1;
-  --color-steady-ink: #334155;
-  --color-steady-mark: #64748b;
-
-  --color-cooling-surface: #f5f3ff;
-  --color-cooling-border: #ddd6fe;
-  --color-cooling-ink: #5b21b6;
-  --color-cooling-mark: #7c3aed;
-
-  --color-revived-surface: #f0fdf4;
-  --color-revived-border: #bbf7d0;
-  --color-revived-ink: #166534;
-  --color-revived-mark: #16a34a;
-
-  /* --color-muted (#64748b) passa AA sobre o fundo por 0,01. Para texto pequeno
-     (legendas, avisos legais, eixos) use este, com folga real. */
-  --color-muted-strong: #475569;
+  /* Temperatura de lead. Escala divergente (quente ↔ frio) mais um estado de
+     retorno fora do eixo, calibrada para a superfície escura da landing —
+     todas passam de 7:1 sobre --color-night. A cor nunca aparece sozinha:
+     cada estado carrega também um ícone e um rótulo textual, e no gráfico
+     também uma forma. Accent fica reservado a interativo e não é temperatura. */
+  --color-hot: #f87171;
+  --color-warming: #fbbf24;
+  --color-steady: #94a3b8;
+  --color-cooling: #a78bfa;
+  --color-revived: #4ade80;
 }
 
 html {
@@ -117,12 +94,38 @@ select:focus-visible {
   }
 }
 
-/* Faint grid over a full-bleed colored field. Decorative only. */
-.field-grid {
-  background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.07) 1px, transparent 1px);
-  background-size: 96px 96px;
+/* Landing decoration. All four are purely visual and carry no meaning, so
+   nothing here needs a text equivalent. */
+.dot-grid {
+  background-image: radial-gradient(rgb(255 255 255 / 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Blurred colour orb behind a section. Always aria-hidden and absolutely
+   positioned by the caller. */
+.orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(100px);
+  pointer-events: none;
+}
+
+.cta-gradient {
+  background-image: linear-gradient(100deg, var(--color-sky), var(--color-violet));
+  box-shadow: 0 14px 44px -12px rgb(124 58 237 / 0.75);
+}
+.cta-gradient:hover {
+  background-image: linear-gradient(100deg, #60a5fa, #a78bfa);
+}
+
+/* Card on the dark surface: a soft top-lit fill plus a hairline edge. */
+.card-night {
+  background-image: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.07),
+    rgb(255 255 255 / 0.02)
+  );
+  border: 1px solid rgb(255 255 255 / 0.1);
 }
 
 /* Panel — flat container. Replaces .glass / .glass-strong. */
