@@ -121,19 +121,55 @@ Notes:
 </ol>
 
 <h2>5. Checklist antes de enviar</h2>
+
+<div class="ok"><strong>Estado em 16/08/2026, 17h20.</strong> O envio está com <strong>4 das 5 etapas verdes</strong>. Trava só na última.
+<table>
+<tr><th>Etapa do formulário</th><th>Estado</th></tr>
+<tr><td>Verificação</td><td>✅ verde</td></tr>
+<tr><td>Configurações do app</td><td>✅ verde</td></tr>
+<tr><td>Uso permitido</td><td>✅ verde — as duas permissões descritas, screencast anexado, caixa de conformidade marcada</td></tr>
+<tr><td>Tratamento de dados</td><td>✅ verde — operador, controlador, país e as duas perguntas de autoridades públicas</td></tr>
+<tr><td>Instruções para o analista</td><td>⛔ <strong>bloqueada</strong> — o app não tem plataforma declarada</td></tr>
+</table>
+</div>
+
+<div class="warn">
+<strong>O bloqueio, exatamente.</strong> A Meta diz: <em>"Antes de adicionar instruções para o analista, você precisará especificar plataformas para este app."</em> Tentei quatro vezes adicionar a plataforma <strong>Site</strong> com a URL <code>https://app.comentou.com.br</code> em Configurações do app → Básico → Adicionar plataforma. O cartão "Site" aparece, aceita a URL, e <strong>some depois de Salvar alterações, sem mensagem de erro</strong> — não fica salvo. O console não acusa erro de permissão.
+<br><br>
+Uma pista provável: o painel informa que <em>"Este aplicativo é gerenciado por <strong>Ai football</strong>"</em>. Ou seja, o app <strong>não</strong> está sob o portfólio "BM - FIVE STARS" que você mencionou. Se as configurações estiverem travadas pelo portfólio que gerencia o app, o salvamento é descartado no servidor — que é exatamente o sintoma. Vale conferir em qual portfólio o app está e se sua conta tem permissão de editar as configurações dele.
+<br><br>
+<strong>É só isso que falta.</strong> Assim que a plataforma Site salvar, a etapa "Instruções para o analista" libera, e o botão <em>Enviar para análise</em> fica clicável.
+</div>
+
+<h3>O que eu já fiz no painel da Meta</h3>
+<table>
+<tr><th>Ação</th><th>Estado</th></tr>
+<tr><td>Remover as permissões extras do envio</td><td>✅ 14 removidas (era 15 itens, incluindo <code>manage_fundraisers</code>, <code>catalog_management</code>, <code>ads_management</code>, <code>Marketing API Access Tier</code>)</td></tr>
+<tr><td>Adicionar <code>instagram_business_manage_messages</code></td><td>✅ adicionada — o envio agora tem exatamente as duas permissões que o código pede</td></tr>
+<tr><td>Descrição de <code>instagram_business_basic</code></td><td>✅ preenchida</td></tr>
+<tr><td>Descrição de <code>instagram_business_manage_messages</code></td><td>✅ 2.507 caracteres, com endpoints, finalidade, retenção e passo a passo de teste</td></tr>
+<tr><td>Screencast</td><td>✅ seu vídeo, recomprimido de 77 MB para 3,4 MB (limite de upload), 1600px/24fps</td></tr>
+<tr><td>Operador de dados</td><td>✅ The Constant Company, LLC (Vultr) — TI/nuvem — Estados Unidos</td></tr>
+<tr><td>Controlador dos dados</td><td>✅ Bento Neto Bento — Brasil</td></tr>
+<tr><td>Plataforma "Site"</td><td>⛔ não salva (acima)</td></tr>
+</table>
+
+<h3>Ainda pendente</h3>
 <table>
 <tr><th>Item</th><th>Estado</th></tr>
-<tr><td>Portfólio empresarial verificado</td><td>Você informou que sim (BM - FIVE STARS)</td></tr>
+<tr><td>Publicar a política de privacidade corrigida</td><td>⬜ <strong>você</strong> — commit <code>f9c0ff6</code> já está no GitHub, falta o deploy no Dokploy (<code>216.128.168.97:3000</code> pediu login; não digito senha)</td></tr>
+<tr><td>Fluxo de OAuth no screencast</td><td>⚠️ o vídeo mostra o painel inteiro mas <strong>não</strong> mostra a tela de consentimento do Instagram, que a Meta pede explicitamente. Uma regravação de 20s do "Conectar Instagram" até voltar ao painel resolve</td></tr>
+<tr><td>Portfólio empresarial verificado</td><td>⚠️ o app aparece sob "Ai football", não "BM - FIVE STARS" — conferir</td></tr>
 <tr><td>URL da Política de Privacidade</td><td>✅ <code>https://app.comentou.com.br/privacy</code></td></tr>
 <tr><td>URL dos Termos de Serviço</td><td>✅ <code>https://app.comentou.com.br/terms</code></td></tr>
 <tr><td>URL de exclusão de dados</td><td>✅ <code>https://app.comentou.com.br/data-deletion</code></td></tr>
 <tr><td>E-mail de contato</td><td>✅ preenchido</td></tr>
 <tr><td>Chamada de API bem-sucedida</td><td>✅ a conta @benttoneto já está conectada e lendo dados</td></tr>
 <tr><td>App publicado</td><td>✅ status “Publicado”</td></tr>
-<tr><td>Remover as 13 permissões extras</td><td>⬜ <strong>você</strong></td></tr>
-<tr><td>Adicionar <code>instagram_business_manage_messages</code></td><td>⬜ <strong>você</strong></td></tr>
-<tr><td>Usuário de teste criado e credenciais preenchidas</td><td>⬜ <strong>você</strong></td></tr>
-<tr><td>Screencast gravado</td><td>⬜ <strong>você</strong></td></tr>
+<tr><td>Remover as permissões extras</td><td>✅ feito (14)</td></tr>
+<tr><td>Adicionar <code>instagram_business_manage_messages</code></td><td>✅ feito</td></tr>
+<tr><td>Screencast anexado</td><td>✅ feito — ver ressalva do OAuth acima</td></tr>
+<tr><td>Plataforma "Site" declarada</td><td>⛔ não salva — <strong>é o único bloqueio</strong></td></tr>
 <tr><td>Ícone do app 1024×1024</td><td>⬜ verificar</td></tr>
 </table>
 
