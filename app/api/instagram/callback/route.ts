@@ -11,6 +11,15 @@ import {
 } from "@/lib/meta/oauth";
 import { canManageWorkspace } from "@/lib/workspace-access";
 
+async function runInstagramStep<T>(step: string, action: () => Promise<T>): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`${step}: ${message}`);
+  }
+}
+
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const error = request.nextUrl.searchParams.get("error");
@@ -43,13 +52,17 @@ export async function GET(request: NextRequest) {
 
   try {
     const redirectUri = `${baseUrl}/api/instagram/callback`;
-    const { accessToken: shortLivedToken } = await exchangeCodeForToken(
-      code,
-      redirectUri
+    const { accessToken: shortLivedToken } = await runInstagramStep(
+      "code exchange",
+      () => exchangeCodeForToken(code, redirectUri)
     );
     const { accessToken: longLivedToken, expiresIn } =
-      await getLongLivedToken(shortLivedToken);
-    const userInfo = await getUserInfo(longLivedToken);
+      await runInstagramStep("long-lived token", () =>
+        getLongLivedToken(shortLivedToken)
+      );
+    const userInfo = await runInstagramStep("profile lookup", () =>
+      getUserInfo(longLivedToken)
+    );
     // Webhooks and the messaging API key off the professional account ID
     // (user_id), not the app-scoped `id`. Store user_id so comment webhooks
     // can be matched back to this account. Fall back to id if user_id is
