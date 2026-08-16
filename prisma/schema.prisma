@@ -87,6 +87,7 @@ model Workspace {
   instagramAccounts InstagramAccount[]
   automations       Automation[]
   dmLogs            DmLog[]
+  leads             Lead[]
   trackedLinks      TrackedLink[]
   linkClicks        LinkClick[]
   webhookEvents     WebhookEvent[]
@@ -164,6 +165,7 @@ model InstagramAccount {
   workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   automations Automation[]
   dmLogs      DmLog[]
+  leads       Lead[]
   linkClicks  LinkClick[]
   followerSnapshots FollowerSnapshot[]
 
@@ -240,6 +242,37 @@ model Automation {
   @@index([workspaceId])
   @@index([instagramAccountId])
   @@index([postId])
+}
+
+// O estado comercial de uma pessoa que interagiu com a conta.
+//
+// A temperatura do lead é sempre derivada dos sinais observados (DmLog) e não é
+// guardada aqui: recalcular é barato e evita um valor que envelhece sozinho no
+// banco. O que esta tabela guarda é a única coisa que a plataforma não consegue
+// inferir — o que a pessoa do outro lado fez a respeito do lead. Por isso venda
+// só existe como GANHO marcado à mão.
+model Lead {
+  id                 String @id @default(cuid())
+  workspaceId        String
+  instagramAccountId String
+
+  // Mesma chave de pessoa usada pelo mapa de calor: o par (conta, comentarista).
+  commenterId   String
+  commenterName String?
+
+  status          LeadStatus @default(NOVO)
+  note            String?
+  lastContactedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace        Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([instagramAccountId, commenterId])
+  @@index([workspaceId])
+  @@index([status])
 }
 
 model DmLog {
@@ -392,6 +425,15 @@ enum WorkspaceInvitationStatus {
   ACCEPTED
   REVOKED
   EXPIRED
+}
+
+enum LeadStatus {
+  NOVO
+  ABORDADO
+  RESPONDEU
+  NEGOCIANDO
+  GANHO
+  PERDIDO
 }
 
 enum DmStatus {

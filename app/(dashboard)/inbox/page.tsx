@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
+import LeadTemperaturePanel from "@/components/lead-temperature-panel";
 import { readCache, writeCache } from "@/lib/client-cache";
 import type { ConversationListItem } from "@/app/api/instagram/conversations/route";
 import type { ThreadMessage } from "@/app/api/instagram/conversations/[id]/route";
@@ -269,6 +270,8 @@ export default function InboxPage() {
           />
         )}
       </div>
+
+      <LeadTemperaturePanel accountId={selectedAccountId} />
 
       <div className="grid h-[calc(100dvh-11rem)] grid-cols-1 overflow-hidden rounded border border-border sm:grid-cols-[300px_1fr]">
         {/* Conversation list. On mobile it takes the full pane and is hidden
