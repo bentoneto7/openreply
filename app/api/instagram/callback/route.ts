@@ -50,12 +50,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/settings?instagram=forbidden`);
   }
 
+  let grantedLabel = "(exchange not reached)";
+
   try {
     const redirectUri = `${baseUrl}/api/instagram/callback`;
-    const { accessToken: shortLivedToken, expiresIn: exchangeExpiresIn } =
-      await runInstagramStep("code exchange", () =>
-        exchangeCodeForToken(code, redirectUri)
-      );
+    const {
+      accessToken: shortLivedToken,
+      expiresIn: exchangeExpiresIn,
+      grantedScopes,
+    } = await runInstagramStep("code exchange", () =>
+      exchangeCodeForToken(code, redirectUri)
+    );
+    // What Meta actually granted, as opposed to what we asked for. A narrower
+    // grant produces a token that authenticates but can call nothing, and that
+    // is indistinguishable from a routing bug unless it is stated outright.
+    grantedLabel = grantedScopes.length
+      ? grantedScopes.map((s) => s.replace("instagram_business_", "")).join("+")
+      : "(none reported)";
     const { accessToken: longLivedToken, expiresIn: exchangedExpiresIn } =
       await runInstagramStep("long-lived token", () =>
         getLongLivedToken(shortLivedToken)
@@ -126,7 +137,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(`${baseUrl}/dashboard?connected=true`);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = `[scopes ${grantedLabel}] ${
+      err instanceof Error ? err.message : "Unknown error"
+    }`;
     console.error("[Instagram Callback] Error:", err);
     // The message is the only diagnostic a self-hoster gets for a failed
     // connect, so persist it alongside the other operational events rather
