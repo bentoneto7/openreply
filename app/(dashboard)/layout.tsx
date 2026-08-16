@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/dashboard-shell";
-import { auth } from "@/lib/auth";
+import { getCurrentSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 import { ensureWorkspaceForUser } from "@/lib/workspace";
 
@@ -9,15 +9,15 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const user = await getCurrentSessionUser();
 
-  if (!session?.user?.id) {
+  if (!user) {
     redirect("/login");
   }
 
   const workspace = await ensureWorkspaceForUser(
-    session.user.id,
-    session.user.email
+    user.id,
+    user.email
   );
   const accounts = await prisma.instagramAccount.findMany({
     where: { workspaceId: workspace.id },

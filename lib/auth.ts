@@ -3,6 +3,7 @@ import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/client";
 import { ensureWorkspaceForUser, getPrimaryWorkspace } from "@/lib/workspace";
+import { cookies } from "next/headers";
 
 type AdapterPrismaClient = Parameters<typeof PrismaAdapter>[0];
 
@@ -42,9 +43,29 @@ export const authConfig = {
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
 
+export async function getCurrentSessionUser(): Promise<{ id: string; email: string | null; name: string | null } | null> {
+  const nextAuthSession = await auth();
+  if (nextAuthSession?.user?.id) {
+    return { id: nextAuthSession.user.id, email: nextAuthSession.user.email ?? null, name: nextAuthSession.user.name ?? null };
+  }
+
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get("__Secure-authjs.session-token")?.value
+    ?? cookieStore.get("authjs.session-token")?.value
+    ?? cookieStore.get("__Secure-next-auth.session-token")?.value
+    ?? cookieStore.get("next-auth.session-token")?.value;
+  if (!sessionToken) return null;
+
+  const databaseSession = await prisma.session.findUnique({
+    where: { sessionToken },
+    include: { user: { select: { id: true, email: true, name: true } } },
+  });
+  if (!databaseSession || databaseSession.expires <= new Date()) return null;
+  return databaseSession.user;
+}
+
 export async function getCurrentUserId(): Promise<string | null> {
-  const session = await auth();
-  return session?.user?.id ?? null;
+  return (await getCurrentSessionUser())?.id ?? null;
 }
 
 export async function getCurrentWorkspaceId(): Promise<string | null> {
