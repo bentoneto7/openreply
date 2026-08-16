@@ -16,7 +16,17 @@
   --color-error: #dc2626;
   --color-warning: #d97706;
   --font-sans: var(--font-plus-jakarta), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, monospace;
+  --font-display: var(--font-archivo), var(--font-plus-jakarta), system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Consolas", monospace;
+
+  /* Landing color blocking. Full-bleed fields, not surfaces — these are only
+     ever used as a section background with light type on top, so each one is
+     paired below with the text color that clears AA against it. */
+  --color-field: #1d4ed8; /* white on it: 8.59:1 */
+  --color-field-deep: #172554; /* white on it: 15.8:1 */
+  --color-ink: #0b1220; /* white on it: 18.9:1 */
+  --color-cream: #f1f0ea; /* foreground on it: 15.2:1 */
+  --color-highlight: #facc15; /* accent stroke only, never text on light */
 
   /* Temperatura de lead — escala divergente (quente ↔ frio) mais um estado de
      retorno fora do eixo. `ink` é a única variante aprovada para texto; `mark`
@@ -105,6 +115,14 @@ select:focus-visible {
   select {
     font-size: 16px;
   }
+}
+
+/* Faint grid over a full-bleed colored field. Decorative only. */
+.field-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.07) 1px, transparent 1px);
+  background-size: 96px 96px;
 }
 
 /* Panel — flat container. Replaces .glass / .glass-strong. */

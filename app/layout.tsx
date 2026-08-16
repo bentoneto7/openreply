@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Archivo, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-plus-jakarta",
+});
+
+// Display face for landing headlines. Plus Jakarta tops out at 800 and stays
+// fairly wide, so it cannot carry the heavy, tight headline the landing needs.
+const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-archivo",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="h-full">
-      <body className={`${plusJakarta.variable} min-h-full bg-background text-foreground font-sans antialiased`}>
+      <body className={`${plusJakarta.variable} ${archivo.variable} min-h-full bg-background text-foreground font-sans antialiased`}>
         {children}
         <Analytics />
       </body>
