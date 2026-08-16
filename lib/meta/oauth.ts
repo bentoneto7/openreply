@@ -90,7 +90,7 @@ export function getAuthorizationUrl(redirectUri: string, state: string): string 
 export async function exchangeCodeForToken(
   code: string,
   redirectUri: string
-): Promise<{ accessToken: string; userId: string }> {
+): Promise<{ accessToken: string; userId: string; expiresIn?: number }> {
   const body = new URLSearchParams({
     client_id: requireEnv("INSTAGRAM_APP_ID"),
     client_secret: requireEnv("INSTAGRAM_APP_SECRET"),
@@ -112,9 +112,11 @@ export async function exchangeCodeForToken(
     );
   }
 
-  const data = unwrapSingle<{ access_token?: string; user_id?: string | number }>(
-    await response.json()
-  );
+  const data = unwrapSingle<{
+    access_token?: string;
+    user_id?: string | number;
+    expires_in?: number;
+  }>(await response.json());
 
   // A missing token here used to travel on as `undefined` and only blow up at
   // the long-lived exchange, where Meta reports it as an unrelated routing
@@ -126,6 +128,11 @@ export async function exchangeCodeForToken(
   return {
     accessToken: data.access_token,
     userId: String(data.user_id),
+    // Meta already states this token's lifetime here. Passing it on beats
+    // assuming 60 days downstream: if the real window is shorter, an assumed
+    // expiry parks the account outside the refresh cron's T-10d selection and
+    // it dies silently while settings still shows it healthy.
+    expiresIn: data.expires_in,
   };
 }
 

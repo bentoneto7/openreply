@@ -52,14 +52,21 @@ export async function GET(request: NextRequest) {
 
   try {
     const redirectUri = `${baseUrl}/api/instagram/callback`;
-    const { accessToken: shortLivedToken } = await runInstagramStep(
-      "code exchange",
-      () => exchangeCodeForToken(code, redirectUri)
-    );
-    const { accessToken: longLivedToken, expiresIn } =
+    const { accessToken: shortLivedToken, expiresIn: exchangeExpiresIn } =
+      await runInstagramStep("code exchange", () =>
+        exchangeCodeForToken(code, redirectUri)
+      );
+    const { accessToken: longLivedToken, expiresIn: exchangedExpiresIn } =
       await runInstagramStep("long-lived token", () =>
         getLongLivedToken(shortLivedToken)
       );
+    // Business Login hands back an already-long-lived token, in which case
+    // getLongLivedToken returns it unchanged and the authoritative lifetime is
+    // the one the code exchange reported. Prefer that over the 60-day default.
+    const expiresIn =
+      longLivedToken === shortLivedToken && exchangeExpiresIn
+        ? exchangeExpiresIn
+        : exchangedExpiresIn;
     const userInfo = await runInstagramStep("profile lookup", () =>
       getUserInfo(longLivedToken)
     );
