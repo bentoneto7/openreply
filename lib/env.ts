@@ -57,6 +57,23 @@ export function getMissingInstagramOAuthEnv(): string[] {
   });
 }
 
+/**
+ * Instagram scopes to request at login. Defaults to the two that work at
+ * Standard Access; comments and insights need App Review first, and requesting
+ * an unapproved scope poisons the whole grant rather than being ignored.
+ * Override with INSTAGRAM_SCOPES (comma-separated) once review clears them.
+ */
+export function getInstagramScopes(): string[] {
+  const configured = process.env.INSTAGRAM_SCOPES;
+  if (configured) {
+    return configured
+      .split(",")
+      .map((scope) => scope.trim())
+      .filter(Boolean);
+  }
+  return ["instagram_business_basic", "instagram_business_manage_messages"];
+}
+
 export function getMetaGraphApiVersion(): string {
   // v26.0 is what Meta's current Instagram Platform reference uses. A version
   // graph.instagram.com no longer serves is not rejected as a bad version — it

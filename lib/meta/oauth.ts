@@ -5,7 +5,7 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "crypto";
-import { getEncryptionKeyHex, requireEnv } from "@/lib/env";
+import { getEncryptionKeyHex, getInstagramScopes, requireEnv } from "@/lib/env";
 import { unwrapSingle } from "@/lib/meta/client";
 
 // www is the documented authorize host for Instagram Business Login, and what
@@ -78,8 +78,12 @@ export function getAuthorizationUrl(redirectUri: string, state: string): string 
   const params = new URLSearchParams({
     client_id: requireEnv("INSTAGRAM_APP_ID"),
     redirect_uri: redirectUri,
-    scope:
-      "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_manage_insights",
+    // Only scopes the Meta app actually has configured. Asking for one it does
+    // not — manage_comments and manage_insights are still "add to app review"
+    // on this app — yields a token that authenticates but carries no grants, so
+    // every graph.instagram.com call, /me included, comes back as code 100
+    // "Unsupported request". Add them back here once App Review clears them.
+    scope: getInstagramScopes().join(","),
     response_type: "code",
     state,
   });
@@ -116,7 +120,21 @@ export async function exchangeCodeForToken(
     access_token?: string;
     user_id?: string | number;
     expires_in?: number;
+    permissions?: string | string[];
   }>(await response.json());
+
+  // Meta states the granted scopes here, and a grant can come back narrower
+  // than requested without the request itself failing. That produces a token
+  // which authenticates but can call nothing, so surface it rather than letting
+  // it show up later as an unexplained code 100 on every endpoint.
+  const granted = Array.isArray(data.permissions)
+    ? data.permissions
+    : (data.permissions ?? "").split(",").filter(Boolean);
+  if (granted.length > 0 && !granted.includes("instagram_business_basic")) {
+    throw new Error(
+      `Instagram granted no basic access. Scopes returned: ${granted.join("|") || "(none)"}`
+    );
+  }
 
   // A missing token here used to travel on as `undefined` and only blow up at
   // the long-lived exchange, where Meta reports it as an unrelated routing
