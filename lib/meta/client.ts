@@ -108,6 +108,26 @@ interface TokenResponse {
   expires_in?: number;
 }
 
+/**
+ * Business Login for Instagram wraps single-object responses in
+ * `{"data":[{...}]}` — the code exchange and `/me` are both documented that
+ * way — while other endpoints return the object bare. Reading straight through
+ * the envelope yields `undefined` for every field, which surfaces much later as
+ * an unrelated Meta error, so accept either shape.
+ *
+ * Only for endpoints returning ONE object. Collection endpoints (media,
+ * comments) use the same `data` array to mean a list — do not unwrap those.
+ */
+export function unwrapSingle<T>(payload: unknown): T {
+  if (payload && typeof payload === "object" && "data" in payload) {
+    const inner = (payload as { data: unknown }).data;
+    if (Array.isArray(inner) && inner.length === 1 && inner[0] && typeof inner[0] === "object") {
+      return inner[0] as T;
+    }
+  }
+  return payload as T;
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   const data = await response.json();
 
@@ -550,7 +570,7 @@ export async function getUserInfo(accessToken: string): Promise<InstagramUser> {
   url.searchParams.set("access_token", accessToken);
 
   const response = await fetch(url.toString());
-  return handleResponse<InstagramUser>(response);
+  return unwrapSingle<InstagramUser>(await handleResponse<unknown>(response));
 }
 
 const MEDIA_FIELDS =
@@ -707,21 +727,42 @@ export async function getFollowerCountSeries(
 export async function getLongLivedToken(
   shortLivedToken: string
 ): Promise<{ accessToken: string; expiresIn: number }> {
-  // Token exchange endpoints are root Graph endpoints. They do not accept a
-  // versioned path (for example `/v25.0/access_token`), which Meta rejects as
-  // an unsupported GET request after a successful Instagram OAuth consent.
+  // Token exchange endpoints are root Graph endpoints, not versioned ones.
   const url = new URL("https://graph.instagram.com/access_token");
   url.searchParams.set("grant_type", "ig_exchange_token");
   url.searchParams.set("client_secret", requireEnv("INSTAGRAM_APP_SECRET"));
   url.searchParams.set("access_token", shortLivedToken);
 
-  const response = await fetch(url.toString());
+  // no-store: a cached exchange would replay a stale (or failed) response, and
+  // the short-lived token is single-use anyway.
+  const response = await fetch(url.toString(), { cache: "no-store" });
+
+  if (!response.ok) {
+    // Meta answers a rejected exchange with bare prose ("Unsupported request -
+    // method type: get") that names neither the request nor the reason. The
+    // connect flow surfaces this string to the operator as the only diagnostic
+    // they get, so spell out what we actually sent — path and param names, so
+    // a wrong host or a dropped grant_type is visible, never the values.
+    throw new Error(
+      `GET ${url.origin}${url.pathname}?${[...url.searchParams.keys()].join(
+        "&"
+      )} -> ${response.status} ${redactMetaError(await response.text())}`
+    );
+  }
+
   const data = await handleResponse<TokenResponse>(response);
 
   return {
     accessToken: data.access_token,
     expiresIn: data.expires_in ?? 5184000,
   };
+}
+
+/** Trims a Meta error body to its message and strips anything token-shaped. */
+function redactMetaError(body: string): string {
+  return body
+    .replace(/((?:access_token|client_secret)["']?\s*[=:]\s*["']?)[\w.\-]+/gi, "$1<redacted>")
+    .slice(0, 300);
 }
 
 export async function refreshLongLivedToken(
@@ -744,19 +785,16 @@ export async function subscribeInstagramAccountToWebhooks(
   instagramAccountId: string,
   accessToken: string
 ): Promise<{ success: boolean }> {
-  const response = await fetch(
-    `${instagramGraphBase()}/${instagramAccountId}/subscribed_apps`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        subscribed_fields: ["comments", "messages"],
-      }),
-    }
+  // Meta documents subscribed_fields as a comma-separated QUERY parameter with
+  // the token as a query param too — no Bearer header, no JSON body form is
+  // documented for this edge.
+  const url = new URL(
+    `${instagramGraphBase()}/${instagramAccountId}/subscribed_apps`
   );
+  url.searchParams.set("subscribed_fields", "comments,messages");
+  url.searchParams.set("access_token", accessToken);
+
+  const response = await fetch(url.toString(), { method: "POST" });
 
   return handleResponse(response);
 }

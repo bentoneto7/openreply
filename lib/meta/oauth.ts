@@ -6,8 +6,13 @@ import {
   timingSafeEqual,
 } from "crypto";
 import { getEncryptionKeyHex, requireEnv } from "@/lib/env";
+import { unwrapSingle } from "@/lib/meta/client";
 
-const INSTAGRAM_OAUTH_URL = "https://api.instagram.com/oauth/authorize";
+// www is the documented authorize host for Instagram Business Login, and what
+// Meta's own dashboard puts in the embedded login URL. api.instagram.com still
+// 302s here, but it drops the percent-encoding on redirect_uri along the way —
+// not worth the hop. The token exchange below stays on api.
+const INSTAGRAM_OAUTH_URL = "https://www.instagram.com/oauth/authorize";
 const INSTAGRAM_TOKEN_URL = "https://api.instagram.com/oauth/access_token";
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
@@ -107,7 +112,17 @@ export async function exchangeCodeForToken(
     );
   }
 
-  const data = await response.json();
+  const data = unwrapSingle<{ access_token?: string; user_id?: string | number }>(
+    await response.json()
+  );
+
+  // A missing token here used to travel on as `undefined` and only blow up at
+  // the long-lived exchange, where Meta reports it as an unrelated routing
+  // error. Fail at the step that actually went wrong.
+  if (!data.access_token) {
+    throw new Error("Token exchange returned no access_token");
+  }
+
   return {
     accessToken: data.access_token,
     userId: String(data.user_id),
