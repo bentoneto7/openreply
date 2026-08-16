@@ -738,18 +738,30 @@ export async function getLongLivedToken(
   const response = await fetch(url.toString(), { cache: "no-store" });
 
   if (!response.ok) {
-    // Meta answers a rejected exchange with bare prose ("Unsupported request -
-    // method type: get") that names neither the request nor the reason, and the
-    // connect flow gives the operator ~200 chars of diagnostic. Spend them on
-    // what actually discriminates: the token's family prefix (IGAA = Instagram
-    // Business Login, EAA = Facebook graph, IGQV = retired Basic Display) tells
-    // you whether the wrong kind of token reached this endpoint. Four leading
-    // characters identify the family and authenticate nothing.
-    const family = shortLivedToken.slice(0, 4);
     const err = (await response.json().catch(() => ({}))) as Partial<GraphApiError>;
+
+    // Business Login for Instagram already hands back a 60-day token from the
+    // code exchange, so asking Meta to exchange it a second time is refused as
+    // an operation that does not apply: IGApiException code 100, no subcode,
+    // against a token that authenticated fine ("Unsupported request - method
+    // type: get" — prose that names neither the request nor the reason, which
+    // is what sent two earlier fixes chasing the endpoint path). A token Meta
+    // genuinely dislikes fails differently, as OAuthException 190. Keep what we
+    // were given; the refresh cron extends it from here, which is what keeps
+    // the account connected indefinitely.
+    if (err.error?.code === 100 && err.error?.error_subcode === undefined) {
+      return { accessToken: shortLivedToken, expiresIn: 5184000 };
+    }
+
+    // Anything else is a real failure. The connect flow shows the operator
+    // ~200 chars and nothing else, so spend them on what discriminates: the
+    // token's family prefix (IGAA = Business Login, EAA = Facebook graph,
+    // IGQV = retired Basic Display) plus Meta's own codes. Four leading
+    // characters name the family and authenticate nothing.
     throw new Error(
-      `tok=${family}… len=${shortLivedToken.length} -> ${response.status} ` +
-        `code=${err.error?.code} sub=${err.error?.error_subcode} ${err.error?.message}`
+      `tok=${shortLivedToken.slice(0, 4)}… len=${shortLivedToken.length} -> ` +
+        `${response.status} code=${err.error?.code} ` +
+        `sub=${err.error?.error_subcode} ${err.error?.message}`
     );
   }
 
