@@ -1,7 +1,14 @@
 import { getMetaGraphApiVersion, requireEnv } from "@/lib/env";
 
+// Unversioned on purpose. An Instagram Business Login token (IGAA…) is only
+// routed on the root graph.instagram.com endpoints; every versioned path comes
+// back as IGApiException 100 "Unsupported request - method type: get" — the
+// version segment is parsed as a node ID rather than rejected as a version, so
+// the message names neither. Verified against the live flow: /access_token
+// (root) routes, /v25.0/me and /v26.0/me both fail identically. Meta's Business
+// Login docs use the root form throughout.
 function instagramGraphBase() {
-  return `https://graph.instagram.com/${getMetaGraphApiVersion()}`;
+  return "https://graph.instagram.com";
 }
 
 function facebookGraphBase() {
