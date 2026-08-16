@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { NextRequest } from "next/server";
 
 const HEX_32_BYTE = /^[a-f0-9]{64}$/i;
 
@@ -16,6 +17,16 @@ export function requireEnv(name: string): string {
 
 export function getBaseUrl(): string {
   return process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+}
+
+/** Uses the public request origin for browser-facing OAuth redirects. */
+export function getRequestBaseUrl(request: NextRequest): string {
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (!host) return request.nextUrl.origin || getBaseUrl();
+
+  const protocol =
+    request.headers.get("x-forwarded-proto") ?? request.nextUrl.protocol.replace(":", "");
+  return `${protocol}://${host}`;
 }
 
 export function getEncryptionKeyHex(): string {
