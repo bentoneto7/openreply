@@ -76,7 +76,7 @@ export default function SettingsPage() {
   }
 
   async function disconnectInstagram(instagramAccountId: string) {
-    if (!confirm("Disconnect Instagram? Campaigns for this account will stop sending DMs.")) {
+    if (!confirm("Desconectar o Instagram? As campanhas desta conta param de enviar DMs.")) {
       return;
     }
 
@@ -140,14 +140,15 @@ export default function SettingsPage() {
       </Suspense>
 
       <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">Instagram Connection</h2>
+        <h2 className="text-base font-semibold mb-6">Conexão com o Instagram</h2>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
             <div>
               <p className="text-sm font-medium text-foreground">Status</p>
               <p className="text-xs text-muted mt-0.5">
-                Comment webhooks and private replies depend on this connection.
+                Os webhooks de comentários e as respostas privadas dependem
+                desta conexão.
               </p>
             </div>
             <span
@@ -157,27 +158,31 @@ export default function SettingsPage() {
                   : "bg-warning/10 text-warning"
               }`}
             >
-              {accounts.length > 0 ? "Connected" : "Not connected"}
+              {accounts.length > 0 ? "Conectado" : "Não conectado"}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
             <div>
-              <p className="text-sm font-medium text-foreground">Accounts</p>
+              <p className="text-sm font-medium text-foreground">Contas</p>
               <p className="text-xs text-muted mt-0.5">
-                {accounts.length} connected Instagram profile
-                {accounts.length === 1 ? "" : "s"}
+                {accounts.length === 1
+                  ? "1 perfil do Instagram conectado"
+                  : `${accounts.length} perfis do Instagram conectados`}
               </p>
             </div>
             <span className="text-sm text-muted">
-              {accounts.length > 0 ? `${accounts.length} connected` : "None"}
+              {accounts.length > 0
+                ? `${accounts.length} conectada${accounts.length === 1 ? "" : "s"}`
+                : "Nenhuma"}
             </span>
           </div>
 
           <div className="space-y-3 py-3">
             {accounts.length === 0 && (
               <p className="text-sm text-muted">
-                Connect an Instagram professional account to launch campaigns.
+                Conecte uma conta profissional do Instagram para usar as
+                campanhas.
               </p>
             )}
             {accounts.map((account) => (
@@ -190,11 +195,11 @@ export default function SettingsPage() {
                     @{account.username}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    Token expires{" "}
+                    Token expira em{" "}
                     {account.tokenExpiresAt
                       ? new Date(account.tokenExpiresAt).toLocaleDateString()
-                      : "not available"}{" "}
-                    · {account.webhookSubscribed ? "Webhook ready" : "Webhook pending"}
+                      : "data não disponível"}{" "}
+                    · {account.webhookSubscribed ? "Webhook pronto" : "Webhook pendente"}
                   </p>
                 </div>
                 <button
@@ -203,21 +208,32 @@ export default function SettingsPage() {
                   className="inline-flex items-center justify-center rounded border border-error/20 px-4 py-2 text-sm font-medium text-error transition-all hover:border-error/40 hover:bg-error/10 disabled:opacity-50"
                 >
                   {busy === `disconnect:${account.id}`
-                    ? "Disconnecting..."
-                    : "Disconnect"}
+                    ? "Desconectando..."
+                    : "Desconectar"}
                 </button>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-border flex gap-3">
-          <a
-            href="/api/instagram/connect"
-            className="px-4 py-2 rounded text-sm font-medium transition-colors bg-accent text-white hover:bg-accent-hover"
-          >
-            {accounts.length > 0 ? "Connect another account" : "Connect Instagram"}
-          </a>
+        <div className="mt-6 pt-4 border-t border-border space-y-3">
+          {/* O app da Meta está em Acesso Padrão: só contas com acesso liberado
+              concluem o OAuth. Dizer isso antes do clique evita o loop de
+              "tentar de novo" em uma falha que o cliente não consegue resolver. */}
+          <p className="text-xs text-muted">
+            Antes de conectar: a conta do Instagram precisa estar liberada no
+            nosso app da Meta. Sem isso o Instagram interrompe a conexão, mesmo
+            com login e senha corretos. Se ainda não pediu a liberação, fale com
+            quem administra o Comentou e informe o @ da conta.
+          </p>
+          <div className="flex gap-3">
+            <a
+              href="/api/instagram/connect"
+              className="px-4 py-2 rounded text-sm font-medium transition-colors bg-accent text-white hover:bg-accent-hover"
+            >
+              {accounts.length > 0 ? "Conectar outra conta" : "Conectar Instagram"}
+            </a>
+          </div>
         </div>
       </section>
 
