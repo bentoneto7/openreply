@@ -19,7 +19,7 @@ interface Campaign {
   postId: string | null;
   postUrl: string | null;
   pendingNextReel: boolean;
-  matchAnyPublicação: boolean;
+  matchAnyPost: boolean;
   keywords: string[];
   matchAnyWord: boolean;
   dmMessage: string;
@@ -32,7 +32,7 @@ interface Campaign {
   requireFollow: boolean;
   followPromptMessage: string | null;
   followPromptButtonLabel: string | null;
-  isAtiva: boolean;
+  isActive: boolean;
   wholeWordMatch: boolean;
   instagramAccountId: string;
   instagramAccount: {
@@ -197,18 +197,29 @@ export default function CampaignsPage() {
     setSelectedAccountId(accountId);
   }
 
-  async function toggleAtiva(id: string, isAtiva: boolean) {
+  async function toggleAtiva(id: string, isActive: boolean) {
+    const next = !isActive;
+    const setActive = (value: boolean) =>
+      setAutomations((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, isActive: value } : a))
+      );
+    // Flip immediately, then revert if the server does not confirm the new
+    // state — a 200 alone is not proof the field was written.
+    setActive(next);
     try {
-      await fetch(`/api/automations?id=${id}`, {
+      const res = await fetch(`/api/automations?id=${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isAtiva: !isAtiva }),
+        body: JSON.stringify({ isActive: next }),
       });
-      setAutomations((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, isAtiva: !isAtiva } : a))
-      );
+      const data = await res.json();
+      if (!res.ok || !data.success || data.data?.isActive !== next) {
+        throw new Error(data.error ?? "Server did not confirm the new status");
+      }
     } catch (err) {
       console.error("Failed to toggle:", err);
+      setActive(isActive);
+      alert("Não foi possível alterar o status da campanha. Tente novamente.");
     }
   }
 
@@ -239,7 +250,7 @@ export default function CampaignsPage() {
 
   async function duplicateAutomation(auto: Campaign) {
     setMenuOpenId(null);
-    const specific = !auto.matchAnyPublicação && !auto.pendingNextReel;
+    const specific = !auto.matchAnyPost && !auto.pendingNextReel;
     try {
       const res = await fetch("/api/automations", {
         method: "POST",
@@ -249,7 +260,7 @@ export default function CampaignsPage() {
           instagramAccountId: auto.instagramAccountId,
           postId: specific ? auto.postId : null,
           postUrl: specific ? auto.postUrl : null,
-          matchAnyPublicação: auto.matchAnyPublicação,
+          matchAnyPost: auto.matchAnyPost,
           pendingNextReel: auto.pendingNextReel,
           matchAnyWord: auto.matchAnyWord,
           keywords: auto.keywords,
@@ -266,7 +277,7 @@ export default function CampaignsPage() {
           followPromptMessage: auto.followPromptMessage,
           followPromptButtonLabel: auto.followPromptButtonLabel,
           wholeWordMatch: auto.wholeWordMatch,
-          isAtiva: false,
+          isActive: false,
         }),
       });
       const data = await res.json();
@@ -288,16 +299,23 @@ export default function CampaignsPage() {
   }
 
   const query = search.trim().toLowerCase();
-  const filtered = automations.filter((a) => {
-    if (statusFilter === "active" && !a.isAtiva) return false;
-    if (statusFilter === "paused" && a.isAtiva) return false;
-    if (!query) return true;
-    return (
-      a.name.toLowerCase().includes(query) ||
-      a.keywords.some((k) => k.toLowerCase().includes(query)) ||
-      a.dmMessage.toLowerCase().includes(query)
+  const filtered = automations
+    .filter((a) => {
+      if (statusFilter === "active" && !a.isActive) return false;
+      if (statusFilter === "paused" && a.isActive) return false;
+      if (!query) return true;
+      return (
+        a.name.toLowerCase().includes(query) ||
+        a.keywords.some((k) => k.toLowerCase().includes(query)) ||
+        a.dmMessage.toLowerCase().includes(query)
+      );
+    })
+    // The API orders by createdAt desc, but the cards show CTR/sends, so rank
+    // by CTR then volume. Campaigns with no sends keep the API's recency order.
+    .sort(
+      (a, b) =>
+        b.analytics.ctr - a.analytics.ctr || b.analytics.sent - a.analytics.sent
     );
-  });
 
   return (
     <div className="space-y-6">
@@ -448,12 +466,12 @@ export default function CampaignsPage() {
                   </span>
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      auto.isAtiva
+                      auto.isActive
                         ? "bg-success/10 text-success"
                         : "bg-zinc-500/10 text-muted"
                     }`}
                   >
-                    {auto.isAtiva ? "Ativa" : "Pausada"}
+                    {auto.isActive ? "Ativa" : "Pausada"}
                   </span>
                   {auto.pendingNextReel && (
                     <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-warning">
@@ -543,16 +561,16 @@ export default function CampaignsPage() {
                 )}
                 {/* Toggle */}
                 <button
-                  onClick={() => toggleAtiva(auto.id, auto.isAtiva)}
+                  onClick={() => void toggleAtiva(auto.id, auto.isActive)}
                   className={`
                     relative w-11 h-6 rounded-full transition-colors
-                    ${auto.isAtiva ? "bg-accent" : "bg-zinc-300"}
+                    ${auto.isActive ? "bg-accent" : "bg-zinc-300"}
                   `}
                 >
                   <span
                     className={`
                       absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm
-                      ${auto.isAtiva ? "left-6" : "left-1"}
+                      ${auto.isActive ? "left-6" : "left-1"}
                     `}
                   />
                 </button>
