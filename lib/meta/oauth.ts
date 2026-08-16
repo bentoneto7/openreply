@@ -6,6 +6,7 @@ import {
   timingSafeEqual,
 } from "crypto";
 import { getEncryptionKeyHex, requireEnv } from "@/lib/env";
+import { unwrapSingle } from "@/lib/meta/client";
 
 // www is the documented authorize host for Instagram Business Login, and what
 // Meta's own dashboard puts in the embedded login URL. api.instagram.com still
@@ -111,7 +112,17 @@ export async function exchangeCodeForToken(
     );
   }
 
-  const data = await response.json();
+  const data = unwrapSingle<{ access_token?: string; user_id?: string | number }>(
+    await response.json()
+  );
+
+  // A missing token here used to travel on as `undefined` and only blow up at
+  // the long-lived exchange, where Meta reports it as an unrelated routing
+  // error. Fail at the step that actually went wrong.
+  if (!data.access_token) {
+    throw new Error("Token exchange returned no access_token");
+  }
+
   return {
     accessToken: data.access_token,
     userId: String(data.user_id),
