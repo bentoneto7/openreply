@@ -1,8 +1,12 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   calculateCtr,
+  intentCommentFilter,
   normalizeTopKeywords,
   summarizeDmStatuses,
+  summarizeIntentComments,
 } from "../lib/tracking/analytics";
 import {
   buildTrackedUrl,
@@ -91,10 +95,22 @@ describe("campaign analytics helpers", () => {
     ).toEqual({ sent: 20, skipped: 4, failed: 2 });
   });
 
-  it("calculates CTR and handles empty send volume", () => {
+  it("calculates CTR and reports empty send volume as no data, not 0%", () => {
     expect(calculateCtr(5, 20)).toBe(25);
     expect(calculateCtr(2, 3)).toBe(66.7);
-    expect(calculateCtr(5, 0)).toBe(0);
+    expect(calculateCtr(0, 20)).toBe(0);
+    expect(calculateCtr(5, 0)).toBeNull();
+  });
+
+  it("counts one comment once even when several campaigns matched it", () => {
+    const rows = [
+      { commentId: "c1", createdAt: new Date(2026, 7, 1, 10) },
+      { commentId: "c1", createdAt: new Date(2026, 7, 1, 10) },
+      { commentId: "c1", createdAt: new Date(2026, 7, 1, 10) },
+      { commentId: "c2", createdAt: new Date(2026, 7, 2, 9) },
+    ];
+
+    expect(summarizeIntentComments(rows, 3)).toEqual({ total: 2, daily: [1, 1, 0] });
   });
 
   it("normalizes top keywords by count", () => {
@@ -108,5 +124,26 @@ describe("campaign analytics helpers", () => {
       { keyword: "LINK", count: 7 },
       { keyword: "PRICE", count: 3 },
     ]);
+  });
+});
+
+describe("comentários acionados: uma definição só", () => {
+  const routes = [
+    "app/api/dashboard/stats/route.ts",
+    "app/api/heatmap/overview/route.ts",
+  ].map((file) => readFileSync(path.resolve(process.cwd(), file), "utf8"));
+
+  it("excludes inbound DMs and link reveals", () => {
+    expect(intentCommentFilter.AND.map((clause) => clause.commentId.not.startsWith)).toEqual([
+      "dm:",
+      "reveal:",
+    ]);
+  });
+
+  it("keeps both screens on the shared filter instead of local prefix lists", () => {
+    for (const source of routes) {
+      expect(source).toMatch(/import \{[^}]*intentCommentFilter[^}]*\} from "@\/lib\/tracking\/analytics"/);
+      expect(source).not.toMatch(/startsWith: "/);
+    }
   });
 });

@@ -21,8 +21,41 @@ function getCount(value: StatusCountRow["_count"] | KeywordCountRow["_count"]) {
   return value._all ?? 0;
 }
 
-export function calculateCtr(clicks: number, sent: number) {
-  if (sent <= 0) return 0;
+/**
+ * Prefixos de commentId que o worker grava em DmLog para sinais que NÃO são
+ * comentários: `dm:` (DM recebida) e `reveal:` (toque no botão do link).
+ */
+export const SIGNAL_PREFIXES = ["dm:", "reveal:"];
+
+/**
+ * Definição única de "comentário acionado": linha de DmLog originada de um
+ * comentário real. Dashboard e mapa de calor importam daqui — duas telas
+ * vizinhas com o mesmo rótulo não podem contar coisas diferentes.
+ */
+export const intentCommentFilter = {
+  AND: SIGNAL_PREFIXES.map((prefix) => ({ commentId: { not: { startsWith: prefix } } })),
+};
+
+/**
+ * Um comentário casado por três campanhas vira três linhas em DmLog
+ * (@@unique([automationId, commentId])). Conta comentário, não linha — total do
+ * mês e série diária saem do mesmo de-dup, então o gráfico fecha com o card.
+ * `days` é o número de dias já decorridos no mês corrente.
+ */
+export function summarizeIntentComments(rows: { commentId: string; createdAt: Date }[], days: number) {
+  const perDay = Array.from({ length: days }, () => new Set<string>());
+  const all = new Set<string>();
+  for (const row of rows) {
+    all.add(row.commentId);
+    const index = row.createdAt.getDate() - 1;
+    if (index >= 0 && index < days) perDay[index].add(row.commentId);
+  }
+  return { total: all.size, daily: perDay.map((set) => set.size) };
+}
+
+/** `null` = nada enviado ainda. Zero seria "medimos e deu 0%", que é mentira. */
+export function calculateCtr(clicks: number, sent: number): number | null {
+  if (sent <= 0) return null;
   // Raw clicks can exceed sends (repeat clicks, link-preview bots hitting the
   // tracked URL), which makes a "rate" over 100% — cap it so CTR stays sane.
   return Math.min(100, Number(((clicks / sent) * 100).toFixed(1)));

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import StatusBadge from "@/components/status-badge";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, MessageCircle } from "lucide-react";
 
 interface DashboardStats {
   userName: string | null;
@@ -12,7 +12,8 @@ interface DashboardStats {
   contactsCount: number;
   dmsDeliveredMonth: number;
   clicksThisMonth: number;
-  advanceRateMonth: number;
+  advanceRateMonth: number | null;
+  advanceRateFromComments?: number | null;
   activeAutomations: number;
   instagramAccounts: AccountOption[];
   comparisons: {
@@ -20,7 +21,7 @@ interface DashboardStats {
     uniqueContacts: number | null;
     dmsDelivered: number | null;
     clicks: number | null;
-    advanceRate: number;
+    advanceRate: number | null;
   };
   comparisonPeriod: { currentLabel: string; previousLabel: string };
   operationalHealth: { delivered: number; skipped: number; failed: number };
@@ -38,8 +39,13 @@ interface DashboardStats {
   }>;
 }
 
-function Trend({ value, points = false }: { value: number | null; points?: boolean }) {
-  if (value === null) return <span className="text-xs text-muted">novo no período</span>;
+/** Taxa nunca medida (`null`/ausente) é exibida como travessão, distinta de um zero medido. */
+function formatRate(value: number | null | undefined) {
+  return value == null ? "—" : `${value}%`;
+}
+
+function Trend({ value, points = false }: { value: number | null | undefined; points?: boolean }) {
+  if (value == null) return <span className="text-xs text-muted">sem histórico</span>;
   const positive = value >= 0;
   return (
     <span className={`text-xs font-medium ${positive ? "text-success" : "text-error"}`}>
@@ -49,7 +55,7 @@ function Trend({ value, points = false }: { value: number | null; points?: boole
 }
 
 function MetricCard({ label, value, trend, points, helper }: {
-  label: string; value: string | number; trend: number | null; points?: boolean; helper: string;
+  label: string; value: string | number; trend: number | null | undefined; points?: boolean; helper: string;
 }) {
   return (
     <div className="panel rounded p-5">
@@ -88,14 +94,16 @@ export default function DashboardPage() {
   }
   if (!stats) return <div className="panel rounded p-8 text-sm text-error">Não foi possível carregar os indicadores.</div>;
 
+  const semAtividade = stats.intentCommentsMonth === 0 && stats.activeAutomations === 0;
   const maxIntent = Math.max(...stats.dailyIntentComments.map((day) => day.count), 1);
   const deliveryRate = stats.intentCommentsMonth > 0
     ? Math.min(100, Number(((stats.dmsDeliveredMonth / stats.intentCommentsMonth) * 100).toFixed(1)))
-    : 0;
-  const funnel = [
+    : null;
+  // Todas as etapas usam o mesmo denominador: comentários acionados.
+  const funnel: Array<{ label: string; value: number; rate: number | null }> = [
     { label: "Comentários acionados", value: stats.intentCommentsMonth, rate: 100 },
     { label: "DMs enviadas", value: stats.dmsDeliveredMonth, rate: deliveryRate },
-    { label: "Cliques brutos", value: stats.clicksThisMonth, rate: stats.advanceRateMonth },
+    { label: "Cliques brutos", value: stats.clicksThisMonth, rate: stats.advanceRateFromComments ?? null },
   ];
 
   return (
@@ -109,6 +117,15 @@ export default function DashboardPage() {
         {stats.instagramAccounts.length > 1 && <AccountSelect accounts={stats.instagramAccounts} value={selectedAccountId} onChange={handleAccountChange} />}
       </header>
 
+      {semAtividade ? (
+        <section className="panel rounded p-10 text-center">
+          <MessageCircle className="mx-auto h-9 w-9 text-accent" strokeWidth={1.75} aria-hidden="true" />
+          <h2 className="mt-4 text-lg font-semibold text-foreground">Nenhuma automação ativa ainda</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted">Os indicadores começam a aparecer quando um comentário acionar uma automação. Ainda não há nada medido por aqui.</p>
+          <Link href="/campaigns/new" className="mt-5 inline-flex min-h-11 items-center rounded bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover">Criar automação de vendas</Link>
+        </section>
+      ) : (
+        <>
       <section aria-labelledby="metricas-comerciais">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
@@ -122,7 +139,7 @@ export default function DashboardPage() {
           <MetricCard label="Contatos únicos" value={stats.contactsCount} trend={stats.comparisons.uniqueContacts} helper="Pessoas únicas entre os comentários acionados." />
           <MetricCard label="DMs enviadas" value={stats.dmsDeliveredMonth} trend={stats.comparisons.dmsDelivered} helper="Mensagens marcadas como enviadas pela Meta." />
           <MetricCard label="Cliques" value={stats.clicksThisMonth} trend={stats.comparisons.clicks} helper="Acessos registrados; pode incluir repetições." />
-          <MetricCard label="Relação clique/DM" value={`${stats.advanceRateMonth}%`} trend={stats.comparisons.advanceRate} points helper="Cliques ÷ DMs enviadas; não representa venda." />
+          <MetricCard label="Relação clique/DM" value={formatRate(stats.advanceRateMonth)} trend={stats.comparisons.advanceRate} points helper="Cliques ÷ DMs enviadas; não representa venda." />
         </div>
       </section>
 
@@ -149,8 +166,8 @@ export default function DashboardPage() {
           <div className="mt-6 space-y-5">
             {funnel.map((step, index) => (
               <div key={step.label}>
-                <div className="mb-2 flex items-end justify-between gap-4"><div><p className="text-sm font-medium text-foreground">{step.label}</p><p className="text-xs text-muted">{step.rate}% da etapa inicial</p></div><strong className="text-xl text-foreground">{step.value}</strong></div>
-                <div className="h-2 overflow-hidden rounded-full bg-surface-hover"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(step.rate, 100)}%` }} /></div>
+                <div className="mb-2 flex items-end justify-between gap-4"><div><p className="text-sm font-medium text-foreground">{step.label}</p><p className="text-xs text-muted">{formatRate(step.rate)} da etapa inicial</p></div><strong className="text-xl text-foreground">{step.value}</strong></div>
+                <div className="h-2 overflow-hidden rounded-full bg-surface-hover"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(step.rate ?? 0, 100)}%` }} /></div>
                 {index < funnel.length - 1 && <ChevronDown className="mx-auto mt-2 h-4 w-4 text-muted" aria-hidden="true" />}
               </div>
             ))}
@@ -177,6 +194,8 @@ export default function DashboardPage() {
           <section className="panel rounded p-5" aria-labelledby="saude-operacional"><h2 id="saude-operacional" className="text-base font-semibold text-foreground">Saúde operacional</h2><p className="mt-1 text-xs text-muted">Separada dos indicadores comerciais.</p><dl className="mt-4 grid grid-cols-3 gap-3 text-center"><div><dt className="text-xs text-muted">Entregues</dt><dd className="mt-1 text-lg font-semibold text-success">{stats.operationalHealth.delivered}</dd></div><div><dt className="text-xs text-muted">Ignoradas</dt><dd className="mt-1 text-lg font-semibold text-warning">{stats.operationalHealth.skipped}</dd></div><div><dt className="text-xs text-muted">Falhas</dt><dd className="mt-1 text-lg font-semibold text-error">{stats.operationalHealth.failed}</dd></div></dl><Link href="/diagnostics" className="mt-4 inline-block text-sm font-medium text-accent hover:underline">Ver diagnóstico</Link></section>
         </div>
       </div>
+        </>
+      )}
 
       <aside className="rounded border border-border bg-surface px-4 py-3 text-xs leading-5 text-muted">Este painel não afirma oportunidades, vendas ou receita: esses eventos ainda não são registrados pela plataforma. “Enviada” não comprova leitura; cliques são brutos e não comprovam compra.</aside>
     </div>

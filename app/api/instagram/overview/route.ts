@@ -49,6 +49,15 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
+/**
+ * Sum only the posts that actually reported a value. Returns null — never 0 —
+ * when no post did, so "unknown" is never rendered as a factual zero.
+ */
+function sumOrNull(values: Array<number | null>): number | null {
+  const known = values.filter((v): v is number => v !== null);
+  return known.length ? known.reduce((a, b) => a + b, 0) : null;
+}
+
 export interface OverviewPost {
   id: string;
   caption: string | null;
@@ -69,6 +78,11 @@ export interface OverviewResponse {
   accounts: Array<{ id: string; username: string }>;
   requestedCount: "all" | number;
   truncated: boolean;
+  /**
+   * True only when every selected post returned insight data. Anything less —
+   * a denied scope, or a partial answer — is false, so the UI never presents
+   * an under-reported total as complete.
+   */
   insightsAvailable: boolean;
   /** Current follower total, or null if Instagram did not return it. */
   followers: number | null;
@@ -77,16 +91,21 @@ export interface OverviewResponse {
    * limited to what has been snapshotted plus any 30-day insights backfill.
    */
   followerHistory: FollowerHistoryPoint[];
+  /**
+   * Summed over the selected posts. The insight-backed metrics are null when
+   * no post reported them — the UI renders that as "—", not as 0. Likes and
+   * comments come from basic media fields and are always numbers.
+   */
   totals: {
     posts: number;
-    views: number;
-    reach: number;
+    views: number | null;
+    reach: number | null;
     likes: number;
     comments: number;
-    saved: number;
-    shares: number;
-    interactions: number;
+    saved: number | null;
+    shares: number | null;
   };
+  /** Ordered by the ranking below: most-commented post first. */
   posts: OverviewPost[];
 }
 
@@ -145,9 +164,6 @@ export async function GET(request: NextRequest) {
     // saved / shares require the insights permission, so fetch them per media
     // (bounded concurrency) and degrade gracefully if the token was granted
     // before that scope.
-    let insightsAvailable = false;
-    let permissionDenied = false;
-
     const insights = await mapWithConcurrency(
       media,
       INSIGHTS_CONCURRENCY,
@@ -156,14 +172,25 @@ export async function GET(request: NextRequest) {
           ? ["views", "reach", "saved", "shares", "total_interactions"]
           : ["reach", "saved", "shares", "total_interactions"];
         try {
-          const data = await getMediaInsights(accessToken, m.id, metrics);
-          insightsAvailable = true;
-          return data;
+          return await getMediaInsights(accessToken, m.id, metrics);
         } catch (err) {
-          if (err instanceof PermissionError) permissionDenied = true;
+          if (!(err instanceof PermissionError)) {
+            console.warn(
+              "[Instagram Overview] Insights unavailable for media:",
+              m.id,
+              err instanceof Error ? err.message : err
+            );
+          }
           return null;
         }
       }
+    );
+
+    // Insights "worked" only if every post came back with data. A rejected
+    // call returns null, and a missing scope can also resolve with an empty
+    // payload — neither counts, so one lucky post can't hide the warning.
+    const insightsAvailable = insights.every(
+      (ins) => ins !== null && Object.keys(ins).length > 0
     );
 
     const posts: OverviewPost[] = media.map((m, i) => {
@@ -186,29 +213,26 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const totals = posts.reduce(
-      (acc, p) => {
-        acc.posts += 1;
-        acc.views += p.views ?? 0;
-        acc.reach += p.reach ?? 0;
-        acc.likes += p.likes;
-        acc.comments += p.comments;
-        acc.saved += p.saved ?? 0;
-        acc.shares += p.shares ?? 0;
-        acc.interactions += p.likes + p.comments + (p.saved ?? 0) + (p.shares ?? 0);
-        return acc;
-      },
-      {
-        posts: 0,
-        views: 0,
-        reach: 0,
-        likes: 0,
-        comments: 0,
-        saved: 0,
-        shares: 0,
-        interactions: 0,
-      }
+    // Rank by the conversation signal we have without the insights scope:
+    // comments first, likes as the tiebreak, then newest, then id — the last
+    // two make the order total, so two loads can never disagree.
+    posts.sort(
+      (a, b) =>
+        b.comments - a.comments ||
+        b.likes - a.likes ||
+        b.timestamp.localeCompare(a.timestamp) ||
+        a.id.localeCompare(b.id)
     );
+
+    const totals = {
+      posts: posts.length,
+      views: sumOrNull(posts.map((p) => p.views)),
+      reach: sumOrNull(posts.map((p) => p.reach)),
+      likes: posts.reduce((n, p) => n + p.likes, 0),
+      comments: posts.reduce((n, p) => n + p.comments, 0),
+      saved: sumOrNull(posts.map((p) => p.saved)),
+      shares: sumOrNull(posts.map((p) => p.shares)),
+    };
 
     const accounts = await prisma.instagramAccount.findMany({
       where: { workspaceId },
@@ -239,7 +263,7 @@ export async function GET(request: NextRequest) {
       accounts,
       requestedCount,
       truncated,
-      insightsAvailable: insightsAvailable && !permissionDenied,
+      insightsAvailable,
       followers,
       followerHistory,
       totals,

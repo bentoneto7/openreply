@@ -3,10 +3,9 @@ import { getCurrentWorkspaceId } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 import { buildHeatmapQueue, countByTemperature, isHeatmapPeriod, periodStart } from "@/lib/heatmap/priority";
 import { IN_PROGRESS_LEAD_STATUSES } from "@/lib/crm/lead-status";
+import { intentCommentFilter, SIGNAL_PREFIXES } from "@/lib/tracking/analytics";
 
 export const dynamic = "force-dynamic";
-
-const SIGNAL_PREFIXES = ["dm:", "reveal:"];
 
 export async function GET(request: NextRequest) {
   const workspaceId = await getCurrentWorkspaceId();
@@ -33,7 +32,7 @@ export async function GET(request: NextRequest) {
   const [accounts, comments, dmSignals] = await Promise.all([
     prisma.instagramAccount.findMany({ where: { workspaceId }, orderBy: { connectedAt: "desc" }, select: { id: true, username: true, instagramId: true, name: true } }),
     prisma.dmLog.findMany({
-      where: { ...window, AND: SIGNAL_PREFIXES.map((prefix) => ({ commentId: { not: { startsWith: prefix } } })) },
+      where: { ...window, ...intentCommentFilter },
       orderBy: { createdAt: "desc" }, take: 500, include,
     }),
     prisma.dmLog.findMany({

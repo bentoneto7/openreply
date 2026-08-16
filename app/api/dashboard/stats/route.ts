@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId, getCurrentWorkspaceId } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
-import { calculateCtr, normalizeTopKeywords, summarizeDmStatuses } from "@/lib/tracking/analytics";
+import { calculateCtr, intentCommentFilter, normalizeTopKeywords, summarizeDmStatuses, summarizeIntentComments } from "@/lib/tracking/analytics";
 
 export const dynamic = "force-dynamic";
 
-function change(current: number, previous: number) {
-  if (previous === 0) return current === 0 ? 0 : null;
+/** `null` = sem base de comparação. Um `+0%` verde diria "estável, no ritmo". */
+function change(current: number, previous: number): number | null {
+  if (previous === 0) return null;
   return Number((((current - previous) / previous) * 100).toFixed(1));
 }
 
@@ -30,10 +31,10 @@ export async function GET(request: NextRequest) {
   const accountFilter = selectedAccountId ? { instagramAccountId: selectedAccountId } : {};
   const currentWindow = { createdAt: { gte: monthStart, lt: monthEnd } };
   const previousWindow = { createdAt: { gte: previousStart, lt: previousEnd } };
-  const intent = { commentId: { not: { startsWith: "dm:" } } } as const;
+  const intent = intentCommentFilter;
 
   const [workspace, instagramAccount, instagramAccounts, totalAutomations, activeAutomations,
-    dmsSentToday, dmsSentWeek, totalDMs, intentCurrent, intentPrevious,
+    dmsSentToday, dmsSentWeek, totalDMs, intentRows, intentPreviousRows,
     sentCurrent, sentPrevious, statusRows, clicksCurrent, clicksPrevious, totalClicks,
     keywordRows, recentLogs, user, contactsCurrent, contactsPrevious] = await Promise.all([
     prisma.workspace.findUnique({ where: { id: workspaceId }, select: { name: true, dmsSentThisPeriod: true } }),
@@ -44,8 +45,12 @@ export async function GET(request: NextRequest) {
     prisma.dmLog.count({ where: { workspaceId, status: "SENT", createdAt: { gte: todayStart }, ...accountFilter } }),
     prisma.dmLog.count({ where: { workspaceId, status: "SENT", createdAt: { gte: weekStart }, ...accountFilter } }),
     prisma.dmLog.count({ where: { workspaceId, status: "SENT", ...accountFilter } }),
-    prisma.dmLog.count({ where: { workspaceId, ...intent, ...currentWindow, ...accountFilter } }),
-    prisma.dmLog.count({ where: { workspaceId, ...intent, ...previousWindow, ...accountFilter } }),
+    // Linhas cruas do mês: o de-dup por commentId (e a série diária) sai daqui,
+    // então card e gráfico nunca discordam.
+    // ponytail: carrega o mês do workspace em memória; se virar gargalo, trocar
+    // por um GROUP BY (dia, commentId) no banco.
+    prisma.dmLog.findMany({ where: { workspaceId, ...intent, ...currentWindow, ...accountFilter }, select: { commentId: true, createdAt: true } }),
+    prisma.dmLog.findMany({ where: { workspaceId, ...intent, ...previousWindow, ...accountFilter }, distinct: ["commentId"], select: { commentId: true } }),
     prisma.dmLog.count({ where: { workspaceId, ...intent, status: "SENT", ...currentWindow, ...accountFilter } }),
     prisma.dmLog.count({ where: { workspaceId, ...intent, status: "SENT", ...previousWindow, ...accountFilter } }),
     prisma.dmLog.groupBy({ by: ["status"], where: { workspaceId, ...currentWindow, ...accountFilter }, _count: { _all: true } }),
@@ -59,11 +64,10 @@ export async function GET(request: NextRequest) {
     prisma.dmLog.findMany({ where: { workspaceId, ...intent, ...previousWindow, ...accountFilter }, distinct: ["commenterId"], select: { commenterId: true } }),
   ]);
 
-  const dailyIntentComments = await Promise.all(Array.from({ length: now.getDate() }, async (_, index) => {
-    const start = new Date(now.getFullYear(), now.getMonth(), index + 1);
-    const end = new Date(start); end.setDate(end.getDate() + 1);
-    const count = await prisma.dmLog.count({ where: { workspaceId, ...intent, createdAt: { gte: start, lt: end }, ...accountFilter } });
-    return { date: start.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }), count };
+  const intentComments = summarizeIntentComments(intentRows, now.getDate());
+  const dailyIntentComments = intentComments.daily.map((count, index) => ({
+    date: new Date(now.getFullYear(), now.getMonth(), index + 1).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+    count,
   }));
 
   const health = summarizeDmStatuses(statusRows.map((row) => ({ status: row.status, _count: row._count._all })));
@@ -77,13 +81,15 @@ export async function GET(request: NextRequest) {
     totalAutomations, activeAutomations, dmsSentToday, dmsSentWeek, totalDMs, totalClicks,
     contactsCount: contactsCurrent.length, dmsSentMonth: sentCurrent, dmsSkippedMonth: health.skipped,
     dmsFailedMonth: health.failed, clicksThisMonth: clicksCurrent, ctrThisMonth: advance,
-    intentCommentsMonth: intentCurrent, dmsDeliveredMonth: sentCurrent, advanceRateMonth: advance,
+    intentCommentsMonth: intentComments.total, dmsDeliveredMonth: sentCurrent, advanceRateMonth: advance,
+    // Terceiro passo do funil: dividido pelo mesmo denominador do primeiro.
+    advanceRateFromComments: calculateCtr(clicksCurrent, intentComments.total),
     comparisons: {
-      intentComments: change(intentCurrent, intentPrevious),
+      intentComments: change(intentComments.total, intentPreviousRows.length),
       uniqueContacts: change(contactsCurrent.length, contactsPrevious.length),
       dmsDelivered: change(sentCurrent, sentPrevious),
       clicks: change(clicksCurrent, clicksPrevious),
-      advanceRate: Number((advance - previousAdvance).toFixed(1)),
+      advanceRate: advance === null || previousAdvance === null ? null : Number((advance - previousAdvance).toFixed(1)),
     },
     comparisonPeriod: { currentLabel: "mês atual até hoje", previousLabel: "mesmo intervalo do mês anterior" },
     operationalHealth: { delivered: health.sent, skipped: health.skipped, failed: health.failed },

@@ -158,18 +158,14 @@ export default function OverviewPage() {
       {!insightsAvailable && (
         <div className="panel rounded p-4 border border-border">
           <p className="text-sm text-foreground">
-            Visualizações, reach, saved and shares need the insights permission.
+            Visualizações, Alcance, Salvos e Compartilhamentos dependem da
+            permissão de insights do Instagram, que ainda depende de aprovação
+            da Meta.
           </p>
           <p className="text-sm text-muted mt-1">
-            Reconnect your account to grant it — likes and comments are shown in
-            the meantime.
+            Enquanto isso essas métricas aparecem como “—”: não são zero, são
+            desconhecidas. Curtidas e Comentários continuam disponíveis.
           </p>
-          <a
-            href="/api/instagram/connect"
-            className="mt-3 inline-block text-sm text-accent hover:underline"
-          >
-            Reconnect Instagram
-          </a>
         </div>
       )}
 
@@ -188,16 +184,22 @@ export default function OverviewPage() {
 
       {/* Per-post table */}
       <div className="panel rounded p-4 sm:p-6">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Publicações</h2>
+        <h2 className="text-sm font-semibold text-foreground mb-4">
+          Publicações{" "}
+          <span className="font-normal text-muted">
+            — ordenadas por comentários
+          </span>
+        </h2>
         {posts.length === 0 ? (
           <p className="text-sm text-muted py-8 text-center">Nenhuma publicação encontrada</p>
         ) : (
-          // Eight metric columns can't compress into a phone; let the table keep
+          // The metric columns can't compress into a phone; let the table keep
           // its natural width and scroll inside the panel instead.
           <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-zinc-500 border-b border-border">
+                  <th className="py-2 pr-3 font-medium">#</th>
                   <th className="py-2 pr-4 font-medium">Publicação</th>
                   <th className="py-2 px-3 font-medium text-right">Visualizações</th>
                   <th className="py-2 px-3 font-medium text-right">Alcance</th>
@@ -209,11 +211,12 @@ export default function OverviewPage() {
                 </tr>
               </thead>
               <tbody>
-                {posts.map((p) => (
+                {posts.map((p, i) => (
                   <tr
                     key={p.id}
                     className="border-b border-border last:border-0"
                   >
+                    <td className="py-3 pr-3 text-zinc-500">{i + 1}</td>
                     <td className="py-3 pr-4 max-w-xs">
                       {p.permalink ? (
                         <a
