@@ -58,7 +58,12 @@ export function getMissingInstagramOAuthEnv(): string[] {
 }
 
 export function getMetaGraphApiVersion(): string {
-  return process.env.META_GRAPH_API_VERSION ?? "v25.0";
+  // v26.0 is what Meta's current Instagram Platform reference uses. A version
+  // graph.instagram.com no longer serves is not rejected as a bad version — it
+  // is parsed as a node ID, so the request degrades into an unroutable GET and
+  // comes back as "Unsupported request - method type: get", naming neither the
+  // version nor the problem.
+  return process.env.META_GRAPH_API_VERSION ?? "v26.0";
 }
 
 export function isBillingEnforcementEnabled(): boolean {

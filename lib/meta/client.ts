@@ -570,6 +570,18 @@ export async function getUserInfo(accessToken: string): Promise<InstagramUser> {
   url.searchParams.set("access_token", accessToken);
 
   const response = await fetch(url.toString());
+
+  if (!response.ok) {
+    // Same reason as the token exchange: Meta reports a path it cannot route
+    // as bare prose, so name the path we asked for. Fields and host only — the
+    // token stays in the query string we never print.
+    const err = (await response.json().catch(() => ({}))) as Partial<GraphApiError>;
+    throw new Error(
+      `GET ${url.origin}${url.pathname} -> ${response.status} ` +
+        `code=${err.error?.code} sub=${err.error?.error_subcode} ${err.error?.message}`
+    );
+  }
+
   return unwrapSingle<InstagramUser>(await handleResponse<unknown>(response));
 }
 
