@@ -739,14 +739,17 @@ export async function getLongLivedToken(
 
   if (!response.ok) {
     // Meta answers a rejected exchange with bare prose ("Unsupported request -
-    // method type: get") that names neither the request nor the reason. The
-    // connect flow surfaces this string to the operator as the only diagnostic
-    // they get, so spell out what we actually sent — path and param names, so
-    // a wrong host or a dropped grant_type is visible, never the values.
+    // method type: get") that names neither the request nor the reason, and the
+    // connect flow gives the operator ~200 chars of diagnostic. Spend them on
+    // what actually discriminates: the token's family prefix (IGAA = Instagram
+    // Business Login, EAA = Facebook graph, IGQV = retired Basic Display) tells
+    // you whether the wrong kind of token reached this endpoint. Four leading
+    // characters identify the family and authenticate nothing.
+    const family = shortLivedToken.slice(0, 4);
+    const err = (await response.json().catch(() => ({}))) as Partial<GraphApiError>;
     throw new Error(
-      `GET ${url.origin}${url.pathname}?${[...url.searchParams.keys()].join(
-        "&"
-      )} -> ${response.status} ${redactMetaError(await response.text())}`
+      `tok=${family}… len=${shortLivedToken.length} -> ${response.status} ` +
+        `code=${err.error?.code} sub=${err.error?.error_subcode} ${err.error?.message}`
     );
   }
 
@@ -756,13 +759,6 @@ export async function getLongLivedToken(
     accessToken: data.access_token,
     expiresIn: data.expires_in ?? 5184000,
   };
-}
-
-/** Trims a Meta error body to its message and strips anything token-shaped. */
-function redactMetaError(body: string): string {
-  return body
-    .replace(/((?:access_token|client_secret)["']?\s*[=:]\s*["']?)[\w.\-]+/gi, "$1<redacted>")
-    .slice(0, 300);
 }
 
 export async function refreshLongLivedToken(
