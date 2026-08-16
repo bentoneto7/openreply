@@ -17,6 +17,40 @@
   --color-warning: #d97706;
   --font-sans: var(--font-plus-jakarta), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, monospace;
+
+  /* Temperatura de lead — escala divergente (quente ↔ frio) mais um estado de
+     retorno fora do eixo. `ink` é a única variante aprovada para texto; `mark`
+     é para marcador de gráfico (>= 3:1, validado para deuteranopia).
+     Nunca usar a cor sozinha: todo estado carrega ícone + rótulo textual.
+     Accent fica reservado a interativo/marca e não representa temperatura. */
+  --color-hot-surface: #fef2f2;
+  --color-hot-border: #fecaca;
+  --color-hot-ink: #b91c1c;
+  --color-hot-mark: #b91c1c;
+
+  --color-warming-surface: #fffbeb;
+  --color-warming-border: #fde68a;
+  --color-warming-ink: #92400e;
+  --color-warming-mark: #c07d05;
+
+  --color-steady-surface: #f1f5f9;
+  --color-steady-border: #cbd5e1;
+  --color-steady-ink: #334155;
+  --color-steady-mark: #64748b;
+
+  --color-cooling-surface: #f5f3ff;
+  --color-cooling-border: #ddd6fe;
+  --color-cooling-ink: #5b21b6;
+  --color-cooling-mark: #7c3aed;
+
+  --color-revived-surface: #f0fdf4;
+  --color-revived-border: #bbf7d0;
+  --color-revived-ink: #166534;
+  --color-revived-mark: #16a34a;
+
+  /* --color-muted (#64748b) passa AA sobre o fundo por 0,01. Para texto pequeno
+     (legendas, avisos legais, eixos) use este, com folga real. */
+  --color-muted-strong: #475569;
 }
 
 html {
@@ -33,6 +67,25 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* An accent outline sitting on an accent button is invisible. Push it outward,
+   onto the light surface behind the button, where it actually reads. */
+a[class*="bg-accent"]:focus-visible,
+button[class*="bg-accent"]:focus-visible {
+  outline-offset: 3px;
+}
+
+/* Windows High Contrast drops the tinted badge backgrounds. The icon and the
+   text label already carry the state; a border keeps the chip legible as a
+   chip. */
+@media (forced-colors: active) {
+  [class*="-surface"] {
+    border: 1px solid CanvasText;
+  }
+  :focus-visible {
+    outline-color: Highlight;
+  }
 }
 
 /* Form fields already have a border, so keep the focus ring hugging the

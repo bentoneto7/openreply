@@ -17,32 +17,37 @@ import {
   HeartHandshake,
   LayoutDashboard,
   ListChecks,
+  Lock,
   Settings,
   Stethoscope,
 } from "lucide-react";
 
+// `paid` mirrors the app/(dashboard)/(paid) route group. Items outside it stay
+// reachable without a subscription so the account can be set up and paid for.
 const navItems = [
-  { label: "Central de vendas", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Mapa de Calor", href: "/heatmap", icon: Flame },
-  { label: "Resultados", href: "/overview", icon: BarChart3 },
-  { label: "Oportunidades", href: "/inbox", icon: HeartHandshake },
-  { label: "Automações", href: "/campaigns", icon: Bot },
-  { label: "Atividade", href: "/logs", icon: ListChecks },
-  { label: "Assinatura", href: "/billing", icon: CreditCard },
-  { label: "Configurações", href: "/settings", icon: Settings },
-  { label: "Diagnóstico", href: "/diagnostics", icon: Stethoscope },
+  { label: "Central de vendas", href: "/dashboard", icon: LayoutDashboard, paid: true },
+  { label: "Mapa de Calor", href: "/heatmap", icon: Flame, paid: true },
+  { label: "Resultados", href: "/overview", icon: BarChart3, paid: true },
+  { label: "Oportunidades", href: "/inbox", icon: HeartHandshake, paid: true },
+  { label: "Automações", href: "/campaigns", icon: Bot, paid: true },
+  { label: "Atividade", href: "/logs", icon: ListChecks, paid: true },
+  { label: "Assinatura", href: "/billing", icon: CreditCard, paid: false },
+  { label: "Configurações", href: "/settings", icon: Settings, paid: false },
+  { label: "Diagnóstico", href: "/diagnostics", icon: Stethoscope, paid: true },
 ];
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   workspaceName: string;
+  subscriptionActive: boolean;
 }
 
 export default function Sidebar({
   isOpen,
   onClose,
   workspaceName,
+  subscriptionActive,
 }: SidebarProps) {
   const pathname = usePathname();
 
@@ -75,10 +80,11 @@ export default function Sidebar({
             const Icon = item.icon;
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/");
+            const isLocked = item.paid && !subscriptionActive;
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={isLocked ? "/billing?locked=1" : item.href}
                 onClick={onClose}
                 aria-current={isActive ? "page" : undefined}
                 className={`
@@ -91,7 +97,13 @@ export default function Sidebar({
                 `}
               >
                 <Icon aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={1.75} />
-                {item.label}
+                <span className="flex-1 truncate">{item.label}</span>
+                {isLocked && (
+                  <>
+                    <Lock aria-hidden="true" className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.75} />
+                    <span className="sr-only">(requer assinatura)</span>
+                  </>
+                )}
               </Link>
             );
           })}

@@ -438,7 +438,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
         data: {
           status: "SKIPPED_PLAN_LIMIT",
           matchedKeyword: matchResult.matchedKeyword,
-          errorMessage: `Monthly DM limit reached (${usage.limit})`,
+          errorMessage: usage.reason ?? `Monthly DM limit reached (${usage.limit})`,
         },
       });
       continue;
@@ -787,7 +787,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
         commentText: "(button tap)",
         commentId: dedupeId,
         status: "SKIPPED_PLAN_LIMIT",
-        errorMessage: `Monthly DM limit reached (${usage.limit})`,
+        errorMessage: usage.reason ?? `Monthly DM limit reached (${usage.limit})`,
       },
       update: { status: "SKIPPED_PLAN_LIMIT" },
     });
@@ -1074,11 +1074,11 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
         create: {
           ...logBase,
           status: "SKIPPED_PLAN_LIMIT",
-          errorMessage: `Monthly DM limit reached (${usage.limit})`,
+          errorMessage: usage.reason ?? `Monthly DM limit reached (${usage.limit})`,
         },
         update: {
           status: "SKIPPED_PLAN_LIMIT",
-          errorMessage: `Monthly DM limit reached (${usage.limit})`,
+          errorMessage: usage.reason ?? `Monthly DM limit reached (${usage.limit})`,
         },
       });
       continue;

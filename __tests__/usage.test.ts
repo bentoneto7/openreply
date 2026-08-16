@@ -27,17 +27,22 @@ vi.mock("@/lib/db/client", () => ({
 }));
 
 import {
+  NO_SUBSCRIPTION_REASON,
   releaseWorkspaceDMReservation,
   reserveWorkspaceDMSend,
 } from "../lib/billing/usage";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The paywall only bites when enforcement is on; the flag is the switch that
+  // keeps self-hosted and local runs unrestricted.
+  process.env.BILLING_ENFORCEMENT_ENABLED = "true";
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-05-24T12:00:00.000Z"));
 });
 
 afterEach(() => {
+  delete process.env.BILLING_ENFORCEMENT_ENABLED;
   vi.useRealTimers();
 });
 
@@ -54,6 +59,7 @@ describe("reserveWorkspaceDMSend", () => {
     mockTx.workspace.findUnique.mockResolvedValueOnce({
       usagePeriodStart: periodStart,
       dmsSentThisPeriod: 99,
+      subscriptionStatus: "ACTIVE",
     });
 
     const result = await reserveWorkspaceDMSend("workspace_123");
@@ -75,12 +81,49 @@ describe("reserveWorkspaceDMSend", () => {
     });
   });
 
+  it("denies without incrementing when the workspace has no active subscription", async () => {
+    const periodStart = new Date("2026-05-01T00:00:00.000Z");
+    mockTx.workspace.updateMany.mockResolvedValueOnce({ count: 0 });
+    mockTx.workspace.findUnique.mockResolvedValueOnce({
+      usagePeriodStart: periodStart,
+      dmsSentThisPeriod: 0,
+      subscriptionStatus: "NONE",
+    });
+
+    const result = await reserveWorkspaceDMSend("workspace_123");
+
+    expect(result.allowed).toBe(false);
+    expect(result.reserved).toBe(false);
+    expect(result.reason).toBe(NO_SUBSCRIPTION_REASON);
+    // Only the period-rollover update ran; no usage was consumed.
+    expect(mockTx.workspace.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows an unsubscribed workspace when enforcement is off", async () => {
+    const periodStart = new Date("2026-05-01T00:00:00.000Z");
+    process.env.BILLING_ENFORCEMENT_ENABLED = "false";
+    mockTx.workspace.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    mockTx.workspace.findUnique.mockResolvedValueOnce({
+      usagePeriodStart: periodStart,
+      dmsSentThisPeriod: 0,
+      subscriptionStatus: "NONE",
+    });
+
+    const result = await reserveWorkspaceDMSend("workspace_123");
+
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBeUndefined();
+  });
+
   it("denies without incrementing when the limit is already reached", async () => {
     const periodStart = new Date("2026-05-01T00:00:00.000Z");
     mockTx.workspace.updateMany.mockResolvedValueOnce({ count: 0 });
     mockTx.workspace.findUnique.mockResolvedValueOnce({
       usagePeriodStart: periodStart,
       dmsSentThisPeriod: LIMIT,
+      subscriptionStatus: "ACTIVE",
     });
 
     const result = await reserveWorkspaceDMSend("workspace_123");
@@ -100,6 +143,7 @@ describe("reserveWorkspaceDMSend", () => {
       .mockResolvedValueOnce({
         usagePeriodStart: periodStart,
         dmsSentThisPeriod: 99,
+        subscriptionStatus: "ACTIVE",
       })
       .mockResolvedValueOnce({
         usagePeriodStart: periodStart,

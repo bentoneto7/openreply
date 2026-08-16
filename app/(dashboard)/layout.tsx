@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/dashboard-shell";
+import { hasPaidAccess } from "@/lib/billing/subscription";
+import { isBillingEnforcementEnabled } from "@/lib/env";
 import { getCurrentSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 import { ensureWorkspaceForUser } from "@/lib/workspace";
@@ -30,6 +32,10 @@ export default async function DashboardLayout({
       workspaceName={workspace.name}
       instagramUsername={accounts[0]?.username ?? null}
       instagramAccountCount={accounts.length}
+      subscriptionActive={
+        !isBillingEnforcementEnabled() ||
+        hasPaidAccess(workspace.subscriptionStatus)
+      }
     >
       {children}
     </DashboardShell>
