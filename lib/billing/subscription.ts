@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import type { SubscriptionStatus } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/client";
+import { isBillingEnforcementEnabled } from "@/lib/env";
 
 const STATUS_MAP: Record<Stripe.Subscription.Status, SubscriptionStatus> = {
   incomplete: "INCOMPLETE",
@@ -20,6 +21,26 @@ function stripeId(value: string | { id: string } | null): string | null {
 
 export function hasPaidAccess(status: SubscriptionStatus): boolean {
   return status === "ACTIVE" || status === "TRIALING";
+}
+
+/**
+ * The single answer to "what does this workspace still have to do before the
+ * tool is theirs?" — cadastro, conectar o Instagram, pagar, nessa ordem.
+ *
+ * Returns the path to send them to, or null when nothing is pending. Every
+ * gated screen routes through this, so the funnel order lives here and nowhere
+ * else. With enforcement off it never gates: local and self-hosted runs behave
+ * exactly as they do today, and the flag doubles as a kill switch if Stripe
+ * stops reporting status correctly.
+ */
+export function nextOnboardingStep(
+  state: { instagramConnected: boolean; subscriptionStatus: SubscriptionStatus },
+  enforcing: boolean = isBillingEnforcementEnabled()
+): "/settings" | "/billing" | null {
+  if (!enforcing) return null;
+  if (!state.instagramConnected) return "/settings";
+  if (!hasPaidAccess(state.subscriptionStatus)) return "/billing";
+  return null;
 }
 
 export async function syncSubscription(

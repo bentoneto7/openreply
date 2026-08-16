@@ -15,6 +15,10 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   passwordHash  String?
+  /// WhatsApp do cadastro, só dígitos com DDI ("5511987654321"). Nullable por
+  /// causa das contas anteriores ao campo, e não é unique: a mesma pessoa pode
+  /// abrir mais de uma conta.
+  whatsapp      String?
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

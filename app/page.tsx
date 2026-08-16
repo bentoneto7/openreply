@@ -37,7 +37,7 @@ export default function Home() {
           <Link href="/" aria-label="Comentou — início"><BrandLogo className="h-auto w-36" priority /></Link>
           <div className="flex items-center gap-3">
             <Link href="/login" className="hidden text-sm font-semibold text-zinc-600 hover:text-zinc-900 sm:block">Entrar</Link>
-            <Link href="/login" className="rounded bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover">Começar agora</Link>
+            <Link href="/cadastro" className="rounded bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover">Começar agora</Link>
           </div>
         </div>
       </header>
@@ -48,7 +48,7 @@ export default function Home() {
           <h1 className="mt-6 text-balance text-5xl font-black leading-[1.02] sm:text-6xl lg:text-7xl">Comentários que viram conversas de venda</h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-600">Identifique comentários com intenção, envie a primeira mensagem no Direct e concentre sua equipe nas oportunidades que merecem uma abordagem 1:1.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/login" className="rounded bg-accent px-6 py-3.5 text-center text-sm font-bold text-white transition hover:bg-accent-hover">Começar por R$ 87/mês</Link>
+            <Link href="/cadastro" className="rounded bg-accent px-6 py-3.5 text-center text-sm font-bold text-white transition hover:bg-accent-hover">Começar por R$ 87/mês</Link>
             <a href="#como-funciona" className="rounded border border-zinc-300 bg-white px-6 py-3.5 text-center text-sm font-bold hover:bg-zinc-50">Ver como funciona</a>
           </div>
           <p className="mt-4 text-sm text-zinc-500">Plano único · Cancele quando quiser · API oficial da Meta</p>
@@ -91,7 +91,7 @@ export default function Home() {
       <section className="mx-auto w-full max-w-6xl px-5 pb-20 sm:px-6 lg:px-8">
         <div className="grid gap-8 rounded-2xl bg-blue-50 p-7 ring-1 ring-blue-200 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
           <div><p className="text-sm font-bold text-accent">COMENTOU COMPLETO</p><h2 className="mt-2 text-4xl font-black">R$ 87 por mês</h2><p className="mt-3 text-zinc-600">Leads e automações ilimitados. Todos os recursos incluídos.</p></div>
-          <Link href="/login" className="rounded bg-accent px-7 py-4 text-center text-sm font-bold text-white transition hover:bg-accent-hover">Ativar a Comentou</Link>
+          <Link href="/cadastro" className="rounded bg-accent px-7 py-4 text-center text-sm font-bold text-white transition hover:bg-accent-hover">Ativar a Comentou</Link>
         </div>
         <p className="mx-auto mt-6 max-w-4xl text-center text-xs leading-5 text-zinc-500">A Comentou automatiza a identificação e o primeiro contato com pessoas que interagem no Instagram. Resultados variam conforme oferta, conteúdo, atendimento e mercado. Não garantimos faturamento. “Leads ilimitados” significa que a Comentou não aplica limite contratual de leads; limites técnicos e políticas da Meta continuam válidos.</p>
       </section>

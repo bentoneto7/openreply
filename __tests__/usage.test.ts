@@ -27,6 +27,7 @@ vi.mock("@/lib/db/client", () => ({
 }));
 
 import {
+  NO_SUBSCRIPTION_REASON,
   releaseWorkspaceDMReservation,
   reserveWorkspaceDMSend,
 } from "../lib/billing/usage";
@@ -38,6 +39,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  delete process.env.BILLING_ENFORCEMENT_ENABLED;
   vi.useRealTimers();
 });
 
@@ -73,6 +75,43 @@ describe("reserveWorkspaceDMSend", () => {
       },
       data: { dmsSentThisPeriod: { increment: 1 } },
     });
+  });
+
+  it("denies without incrementing when the workspace has no active subscription", async () => {
+    process.env.BILLING_ENFORCEMENT_ENABLED = "true";
+    const periodStart = new Date("2026-05-01T00:00:00.000Z");
+    mockTx.workspace.updateMany.mockResolvedValueOnce({ count: 0 });
+    mockTx.workspace.findUnique.mockResolvedValueOnce({
+      usagePeriodStart: periodStart,
+      dmsSentThisPeriod: 0,
+      subscriptionStatus: "NONE",
+    });
+
+    const result = await reserveWorkspaceDMSend("workspace_123");
+
+    expect(result.allowed).toBe(false);
+    expect(result.reserved).toBe(false);
+    expect(result.reason).toBe(NO_SUBSCRIPTION_REASON);
+    // Only the period-rollover update ran; no usage was consumed.
+    expect(mockTx.workspace.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows an unsubscribed workspace when enforcement is off", async () => {
+    process.env.BILLING_ENFORCEMENT_ENABLED = "false";
+    const periodStart = new Date("2026-05-01T00:00:00.000Z");
+    mockTx.workspace.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    mockTx.workspace.findUnique.mockResolvedValueOnce({
+      usagePeriodStart: periodStart,
+      dmsSentThisPeriod: 0,
+      subscriptionStatus: "NONE",
+    });
+
+    const result = await reserveWorkspaceDMSend("workspace_123");
+
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBeUndefined();
   });
 
   it("denies without incrementing when the limit is already reached", async () => {

@@ -28,6 +28,13 @@ export default async function BillingPage() {
         <p className="mt-2 text-sm text-muted">
           Um único plano para transformar comentários com intenção em conversas de venda.
         </p>
+        {!active && (
+          <p className="mt-4 rounded border border-warning/20 bg-warning/10 p-4 text-sm text-warning">
+            O painel abre com a assinatura ativa. Criar a conta e conectar o
+            Instagram continuam liberados — é só assinar aqui para o restante
+            destravar.
+          </p>
+        )}
       </div>
 
       <section className="panel rounded p-6 sm:p-8">

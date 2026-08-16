@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
 import { InstagramConnectNotice } from "@/components/instagram-connect-notice";
+import { supportWhatsAppLink } from "@/lib/support";
 
 interface SettingsData {
   workspace: {
@@ -223,8 +224,18 @@ export default function SettingsPage() {
           <p className="text-xs text-muted">
             Antes de conectar: a conta do Instagram precisa estar liberada no
             nosso app da Meta. Sem isso o Instagram interrompe a conexão, mesmo
-            com login e senha corretos. Se ainda não pediu a liberação, fale com
-            quem administra o Comentou e informe o @ da conta.
+            com login e senha corretos. Se ainda não pediu a liberação, fale com{" "}
+            <a
+              href={supportWhatsAppLink(
+                "Olá! Quero liberar minha conta do Instagram no app da Meta do Comentou. Meu @ é:"
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-accent hover:underline"
+            >
+              quem administra o Comentou
+            </a>{" "}
+            e informe o @ da conta.
           </p>
           <div className="flex gap-3">
             <a

@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db/client";
 import type { Prisma } from "@/app/generated/prisma/client";
+import { hasPaidAccess } from "@/lib/billing/subscription";
+import { isBillingEnforcementEnabled } from "@/lib/env";
 
 // Self-hosted build: usage is still counted per month so the dashboard can
 // report volume, but no cap is enforced. Meta's own rate limits apply instead.
@@ -43,7 +45,12 @@ export interface WorkspaceDMReservation {
   remaining: number;
   limit: number;
   periodStart: Date | null;
+  /** Set when the send was blocked for a reason other than the volume cap. */
+  reason?: string;
 }
+
+export const NO_SUBSCRIPTION_REASON =
+  "Workspace sem assinatura ativa — envios liberados após a assinatura";
 
 export async function reserveWorkspaceDMSend(
   workspaceId: string
@@ -57,6 +64,7 @@ export async function reserveWorkspaceDMSend(
       select: {
         usagePeriodStart: true,
         dmsSentThisPeriod: true,
+        subscriptionStatus: true,
       },
     });
 
@@ -71,6 +79,23 @@ export async function reserveWorkspaceDMSend(
     }
 
     const limit = MONTHLY_DM_LIMIT;
+
+    // The one choke point every worker send path already routes through: no
+    // active subscription, no automated sends. Gating only the screens would
+    // leave an unpaid workspace's existing automations running forever.
+    if (
+      isBillingEnforcementEnabled() &&
+      !hasPaidAccess(workspace.subscriptionStatus)
+    ) {
+      return {
+        allowed: false,
+        reserved: false,
+        remaining: 0,
+        limit,
+        periodStart: workspace.usagePeriodStart,
+        reason: NO_SUBSCRIPTION_REASON,
+      };
+    }
 
     if (workspace.dmsSentThisPeriod >= limit) {
       return {
@@ -129,6 +154,7 @@ export async function canSendDMForWorkspace(workspaceId: string): Promise<{
     where: { id: workspaceId },
     select: {
       dmsSentThisPeriod: true,
+      subscriptionStatus: true,
     },
   });
 
@@ -138,9 +164,12 @@ export async function canSendDMForWorkspace(workspaceId: string): Promise<{
 
   const limit = MONTHLY_DM_LIMIT;
   const remaining = Math.max(0, limit - workspace.dmsSentThisPeriod);
+  const subscribed =
+    !isBillingEnforcementEnabled() ||
+    hasPaidAccess(workspace.subscriptionStatus);
 
   return {
-    allowed: workspace.dmsSentThisPeriod < limit,
+    allowed: subscribed && workspace.dmsSentThisPeriod < limit,
     remaining,
     limit,
   };

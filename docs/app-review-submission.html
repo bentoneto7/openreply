@@ -1,0 +1,126 @@
+<title>App Review — Comentou</title>
+<style>
+  :root{--bg:#fff;--fg:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#2563eb;--warn:#b45309;--warnbg:#fffbeb;--okbg:#f0fdf4;--ok:#15803d;--codebg:#f9fafb}
+  @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b0f19;--fg:#e5e7eb;--muted:#9ca3af;--line:#1f2937;--accent:#60a5fa;--warn:#fbbf24;--warnbg:#1c1917;--okbg:#052e16;--ok:#4ade80;--codebg:#111827}}
+  :root[data-theme=dark]{--bg:#0b0f19;--fg:#e5e7eb;--muted:#9ca3af;--line:#1f2937;--accent:#60a5fa;--warn:#fbbf24;--warnbg:#1c1917;--okbg:#052e16;--ok:#4ade80;--codebg:#111827}
+  body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,Segoe UI,Roboto,sans-serif;max-width:860px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:28px;margin:0 0 4px} h2{font-size:20px;margin:38px 0 10px;padding-top:18px;border-top:1px solid var(--line)}
+  h3{font-size:16px;margin:22px 0 6px}
+  .sub{color:var(--muted);margin:0 0 8px}
+  .box{background:var(--codebg);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:10px 0;white-space:pre-wrap;font:14px/1.6 ui-monospace,Consolas,monospace}
+  .warn{background:var(--warnbg);border-left:3px solid var(--warn);padding:12px 16px;border-radius:6px;margin:14px 0}
+  .ok{background:var(--okbg);border-left:3px solid var(--ok);padding:12px 16px;border-radius:6px;margin:14px 0}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--codebg)}
+  code{background:var(--codebg);padding:1px 5px;border-radius:4px;font-size:14px}
+  ol,ul{padding-left:22px} li{margin:5px 0}
+  .tag{display:inline-block;background:var(--accent);color:#fff;font-size:11px;padding:2px 7px;border-radius:99px;vertical-align:middle}
+  .wrap{overflow-x:auto}
+</style>
+
+<h1>App Review — Comentou</h1>
+<p class="sub">App <code>2603891586729781</code> · Instagram App ID <code>1427551009115339</code> · submissão <code>2604863673299239</code></p>
+
+<div class="warn">
+<strong>Antes de tudo: limpe a submissão.</strong><br>
+Ela está com <strong>16 permissões</strong> e o produto usa <strong>duas</strong>. Estão lá dentro <code>manage_fundraisers</code>, <code>catalog_management</code>, <code>leads_retrieval</code>, <code>ads_management</code>, <code>pages_manage_ads</code>, <code>business_management</code>, <code>threads_basic</code>, <code>pages_messaging</code>, <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_metadata</code>, <code>ads_read</code>, <code>public_profile</code> e <code>Marketing API Access Tier</code>.<br><br>
+A Meta trata isso como motivo comum de rejeição: pedir o que não se usa. Use o link <strong>“edite-o”</strong> no topo de “Uso permitido” e deixe só o que está na tabela abaixo.
+</div>
+
+<h2>1. Permissões a manter</h2>
+<table>
+<tr><th>Permissão</th><th>Por que o produto precisa</th><th>Manter?</th></tr>
+<tr><td><code>instagram_business_basic</code></td><td>Identificar a conta conectada e listar as publicações do próprio cliente.</td><td><strong>Sim</strong></td></tr>
+<tr><td><code>instagram_business_manage_messages</code></td><td>Ler as conversas de Direct e responder de dentro da plataforma. É o núcleo do produto.</td><td><strong>Sim — falta adicionar</strong></td></tr>
+<tr><td><code>instagram_business_manage_comments</code></td><td>Só se você for vender o gatilho “comentou → recebe DM”. Sem ela esse recurso não funciona.</td><td>Opcional</td></tr>
+<tr><td>Todas as outras 13</td><td>Não são usadas por nenhuma linha do código.</td><td><strong>Remover</strong></td></tr>
+</table>
+
+<div class="warn"><strong>Atenção:</strong> <code>instagram_manage_comments</code> (que está na submissão) não é a mesma coisa que <code>instagram_business_manage_comments</code>. A primeira é do fluxo com Login do Facebook; o Comentou usa o fluxo com Login do Instagram. Se for pedir comentários, peça a versão <code>business</code>.</div>
+
+<h2>2. Textos para colar — “Como esse app usará…”</h2>
+<p class="sub">Escritos em inglês de propósito: a fila de revisão é internacional. Cada um descreve o uso real, sem promessa que o código não cumpre.</p>
+
+<h3>instagram_business_basic</h3>
+<div class="box">Comentou is a sales tool for Instagram professional accounts. After the account owner connects their own account through Business Login for Instagram, we use instagram_business_basic to identify which professional account was connected and to list that account's own media.
+
+Specifically we read: the account id and username, to label the connected account in the dashboard and to match incoming Direct messages to the right customer workspace; and the account's own posts and reels with their like and comment counts, so the owner can see which of their publications generated the most conversation.
+
+Without this permission we cannot tell whose account is connected, so no other feature can be attributed to the correct user. We do not read media from accounts other than the one the user explicitly connected, and we do not use hashtag or public content search.</div>
+
+<h3>instagram_business_manage_messages</h3>
+<div class="box">Comentou helps a business owner answer the Direct messages they already receive on their own Instagram professional account, and decide which conversation to answer first.
+
+We use instagram_business_manage_messages to: read the account's Direct conversations and the latest message of each thread, in order to detect which people wrote to the business and were never answered; and to send replies to those people from inside our dashboard, on behalf of and at the explicit request of the account owner.
+
+The ranking shown to the owner is built only from this data — whether the last message is inbound, how long ago it arrived, and how much of Meta's 24-hour messaging window remains. No message is sent automatically without the owner configuring it or clicking send.
+
+Without this permission the product has no function: the entire value is prioritising and answering the owner's own inbox.</div>
+
+<h3>instagram_business_manage_comments <span class="tag">só se for pedir</span></h3>
+<div class="box">Comentou lets a business owner turn comments on their own posts into private conversations, which is the standard comment-to-DM flow.
+
+We use instagram_business_manage_comments to read comments left on the connected account's own media, to detect when a comment matches a keyword the owner configured (for example a product name), and to reply to that comment publicly and/or send the commenter a private reply, as configured by the owner.
+
+We only read comments on media belonging to the account that granted the permission. We do not read comments on third-party media and we do not aggregate comment data across accounts.</div>
+
+<h2>3. Instruções para o analista</h2>
+<p class="sub">Campo “Instruções para o analista”. Sem credenciais válidas a submissão inteira é rejeitada.</p>
+<div class="box">Comentou is a web app in Portuguese (Brazil). URL: https://app.comentou.com.br
+
+Test credentials:
+  E-mail: [PREENCHER]
+  Password: [PREENCHER]
+
+Steps to reproduce:
+1. Open https://app.comentou.com.br and log in with the credentials above.
+2. Go to "Configurações" (Settings) in the left sidebar.
+3. Click "Conectar Instagram". You will be redirected to Business Login for Instagram and asked to authorise an Instagram professional account.
+4. After authorising, you return to the dashboard and the connected account appears under "Conexão do Instagram".
+5. Go to "Oportunidades" (Inbox) to see the Direct conversations read with instagram_business_manage_messages, and to send a reply.
+6. Go to "Mapa de Calor" (Priority queue) to see those same conversations ranked by how long the 24-hour messaging window has left.
+7. Go to "Resultados" to see the connected account's own posts listed with like and comment counts, read with instagram_business_basic.
+
+Notes:
+- The Instagram account used for testing must be a professional (Business or Creator) account and must be public.
+- All data shown belongs to the account the reviewer connects in step 3. No other account's data is accessed.</div>
+
+<div class="warn"><strong>Você precisa criar o usuário de teste</strong> em <a href="https://app.comentou.com.br/register">app.comentou.com.br/register</a> e preencher os dois campos acima. Não posso criar contas nem digitar senhas.</div>
+
+<h2>4. Roteiro do screencast</h2>
+<p class="sub">Um vídeo por permissão. Motivo nº 1 de rejeição: não aparecer a tela de consentimento.</p>
+<div class="ok"><strong>Regra que derruba a maioria:</strong> o vídeo precisa mostrar o <em>logout → login → tela de permissão do Instagram com os itens visíveis → o dado aparecendo no app</em>. Se cortar a tela de consentimento, é rejeição automática.</div>
+<ol>
+<li>Comece <strong>deslogado</strong>. Mostre a tela de login.</li>
+<li>Faça login com o usuário de teste.</li>
+<li>Vá em Configurações → clique em <strong>Conectar Instagram</strong>.</li>
+<li><strong>Pare na tela do Instagram</strong> e deixe visível por 3–4 segundos, com as permissões legíveis. Não corte.</li>
+<li>Autorize e volte ao app.</li>
+<li>Para <code>basic</code>: abra <strong>Resultados</strong> e mostre os posts com curtidas e comentários.</li>
+<li>Para <code>manage_messages</code>: abra <strong>Oportunidades</strong>, mostre as conversas e <strong>envie uma resposta de verdade</strong>. Depois abra o <strong>Mapa de Calor</strong> e mostre a fila priorizada.</li>
+<li>1080p ou mais. Interface em inglês ou com legendas em inglês — a interface está em português, então <strong>legende</strong>.</li>
+<li>Narre ou legende o que cada tela faz. O revisor não adivinha.</li>
+</ol>
+
+<h2>5. Checklist antes de enviar</h2>
+<table>
+<tr><th>Item</th><th>Estado</th></tr>
+<tr><td>Portfólio empresarial verificado</td><td>Você informou que sim (BM - FIVE STARS)</td></tr>
+<tr><td>URL da Política de Privacidade</td><td>✅ <code>https://app.comentou.com.br/privacy</code></td></tr>
+<tr><td>URL dos Termos de Serviço</td><td>✅ <code>https://app.comentou.com.br/terms</code></td></tr>
+<tr><td>URL de exclusão de dados</td><td>✅ <code>https://app.comentou.com.br/data-deletion</code></td></tr>
+<tr><td>E-mail de contato</td><td>✅ preenchido</td></tr>
+<tr><td>Chamada de API bem-sucedida</td><td>✅ a conta @benttoneto já está conectada e lendo dados</td></tr>
+<tr><td>App publicado</td><td>✅ status “Publicado”</td></tr>
+<tr><td>Remover as 13 permissões extras</td><td>⬜ <strong>você</strong></td></tr>
+<tr><td>Adicionar <code>instagram_business_manage_messages</code></td><td>⬜ <strong>você</strong></td></tr>
+<tr><td>Usuário de teste criado e credenciais preenchidas</td><td>⬜ <strong>você</strong></td></tr>
+<tr><td>Screencast gravado</td><td>⬜ <strong>você</strong></td></tr>
+<tr><td>Ícone do app 1024×1024</td><td>⬜ verificar</td></tr>
+</table>
+
+<h2>6. O que muda quando aprovar</h2>
+<p>Hoje o app tem <strong>Standard Access</strong>: só contas com função de testador no app conseguem conectar. Por isso a sua conta precisou ser adicionada manualmente.</p>
+<p>Com <strong>Advanced Access</strong>, qualquer conta profissional do Instagram conecta sozinha — que é o fluxo que você quer vender: o cliente cadastra, conecta, paga e usa, sem depender de você.</p>
+<div class="warn">Não existe atalho. Pagamento, paywall e código não substituem essa aprovação: quem autoriza a leitura do Instagram de terceiros é a Meta, não o seu sistema.</div>

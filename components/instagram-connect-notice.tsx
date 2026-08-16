@@ -2,7 +2,31 @@
 
 import { useSearchParams } from "next/navigation";
 
+import { supportWhatsAppLink } from "@/lib/support";
+
 type Tone = "error" | "warning" | "success";
+
+/** Herda a cor do tom do aviso; só o sublinhado marca que é link. */
+const LINK_CLASSES = "font-semibold underline underline-offset-2";
+
+function SupportLink({
+  message,
+  children,
+}: {
+  message: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={supportWhatsAppLink(message)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={LINK_CLASSES}
+    >
+      {children}
+    </a>
+  );
+}
 
 const TONE_CLASSES: Record<Tone, string> = {
   error: "border-error/20 bg-error/10 text-error",
@@ -29,8 +53,12 @@ const MESSAGES: Record<
           alguma permissão. Tentar de novo não resolve sozinho.
         </p>
         <p className="mt-2">
-          Peça a liberação a quem administra o Comentou, informando o @ da conta
-          que você quer conectar. Depois de aceitar o convite de testador no
+          Peça a liberação a{" "}
+          <SupportLink message="Olá! Minha conta do Instagram ainda não tem acesso liberado no app da Meta do Comentou. Meu @ é:">
+            quem administra o Comentou
+          </SupportLink>
+          , informando o @ da conta que você quer conectar. Depois de aceitar o
+          convite de testador no
           Instagram (Editar perfil → Apps e sites → Convites de testador), volte
           aqui e conecte.
         </p>
@@ -72,9 +100,12 @@ const MESSAGES: Record<
         </p>
         <p className="mt-2">
           Se você já usou o Comentou antes com outro e-mail, a conta continua
-          presa àquele cadastro: entre com ele e desconecte por lá, ou peça a
-          quem administra o Comentou para liberar. Você também pode conectar uma
-          conta do Instagram diferente.
+          presa àquele cadastro: entre com ele e desconecte por lá, ou peça a{" "}
+          <SupportLink message="Olá! Minha conta do Instagram já está ligada a outro espaço de trabalho no Comentou e preciso liberar. Meu @ é:">
+            quem administra o Comentou
+          </SupportLink>{" "}
+          para liberar. Você também pode conectar uma conta do Instagram
+          diferente.
         </p>
       </>
     ),
@@ -132,7 +163,15 @@ export function InstagramConnectNotice() {
           dê para resolver tentando de novo.
         </p>
         <p className="mt-2">
-          Envie o detalhe abaixo para quem administra o Comentou.
+          Envie o detalhe abaixo para{" "}
+          <SupportLink
+            message={`Olá! A conexão do Instagram no Comentou falhou.${
+              reason ? ` Detalhe técnico: ${reason}` : ""
+            }`}
+          >
+            quem administra o Comentou
+          </SupportLink>
+          .
         </p>
         {reason && (
           <p className="mt-2 text-xs opacity-80">
