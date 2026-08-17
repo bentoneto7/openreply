@@ -18,18 +18,18 @@ function formatNumber(n: number | null): string {
   if (n === null) return "—";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString();
+  return n.toLocaleString("pt-BR");
 }
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return d.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
 }
 
 const COUNT_OPTIONS = [
-  { value: "25", label: "Last 25" },
-  { value: "50", label: "Last 50" },
-  { value: "100", label: "Last 100" },
+  { value: "25", label: "Últimas 25" },
+  { value: "50", label: "Últimas 50" },
+  { value: "100", label: "Últimas 100" },
   { value: "all", label: "Todo o período" },
 ];
 
@@ -73,8 +73,8 @@ export default function OverviewPage() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-        {[...Array(6)].map((_, i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        {[...Array(8)].map((_, i) => (
           <div key={i} className="panel rounded p-4 h-24 sm:p-5">
             <div className="h-4 w-16 bg-zinc-200 rounded" />
             <div className="mt-3 h-6 w-20 bg-zinc-200/60 rounded" />
@@ -93,7 +93,7 @@ export default function OverviewPage() {
             href="/api/instagram/connect"
             className="mt-4 inline-block text-sm text-accent hover:underline"
           >
-            Connect Instagram
+            Conectar Instagram
           </a>
         )}
       </div>
@@ -102,32 +102,55 @@ export default function OverviewPage() {
 
   if (!data) return null;
 
-  const { totals, posts, accounts, insightsAvailable, followers, followerHistory } =
-    data;
+  const {
+    totals,
+    posts,
+    accounts,
+    insightsAvailable,
+    followers,
+    followerHistory,
+    profile,
+    engagementRate,
+  } = data;
+  const username = profile?.username ?? data.account.username;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-foreground">Resultados</h1>
-          <p className="text-sm text-muted mt-1">
-            {data.requestedCount === "all" ? "Todo o período" : "Recentes"} —{" "}
-            {totals.posts} post{totals.posts === 1 ? "" : "s"} from @
-            {data.account.username}
-            {data.truncated ? ` (capped at ${totals.posts})` : ""}
-          </p>
-          {followers !== null && (
-            // Kept out of the tile row below: that row sums the selected posts,
-            // whereas this is a current account-level total.
-            <p className="mt-1 text-sm text-muted">
-              {followers.toLocaleString()} followers
-            </p>
+        <div className="flex min-w-0 items-center gap-3">
+          {profile?.avatarUrl && (
+            // Instagram CDN URLs are hotlink-sensitive and not in the Next image
+            // allowlist; the same plain <img> + no-referrer pattern as the
+            // campaign preview and the post picker.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.avatarUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="h-12 w-12 shrink-0 rounded-full object-cover"
+            />
           )}
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold text-foreground">Resultados</h1>
+            <p className="mt-1 truncate text-sm text-muted">
+              {profile?.name ? `${profile.name} · ` : ""}@{username}
+              {/* Point-in-time account total, deliberately outside the tile row
+                  below, which sums only the selected posts. */}
+              {followers !== null
+                ? ` · ${followers.toLocaleString("pt-BR")} seguidores`
+                : ""}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {data.requestedCount === "all" ? "Todo o período" : "Recentes"} —{" "}
+              {totals.posts} publicaç{totals.posts === 1 ? "ão" : "ões"}
+              {data.truncated ? ` (limitado a ${totals.posts})` : ""}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Range
+              Período
             </span>
             <select
               value={count}
@@ -170,13 +193,20 @@ export default function OverviewPage() {
       )}
 
       {/* Aggregate totals */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard label="Visualizações" value={formatNumber(totals.views)} />
         <StatCard label="Alcance" value={formatNumber(totals.reach)} />
         <StatCard label="Curtidas" value={formatNumber(totals.likes)} />
         <StatCard label="Comentários" value={formatNumber(totals.comments)} />
         <StatCard label="Salvos" value={formatNumber(totals.saved)} />
         <StatCard label="Compartilhamentos" value={formatNumber(totals.shares)} />
+        <StatCard label="Interações" value={formatNumber(totals.interactions)} />
+        {/* Interações ÷ alcance. Só aparece com os dois lados medidos — ver
+            engagementRate na rota. */}
+        <StatCard
+          label="Taxa de engajamento"
+          value={engagementRate === null ? "—" : `${engagementRate}%`}
+        />
       </div>
 
       {/* Follower trend — account-level, independent of the post range */}
@@ -218,20 +248,36 @@ export default function OverviewPage() {
                   >
                     <td className="py-3 pr-3 text-zinc-500">{i + 1}</td>
                     <td className="py-3 pr-4 max-w-xs">
-                      {p.permalink ? (
-                        <a
-                          href={p.permalink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-accent truncate block"
-                        >
-                          {p.caption || `${p.mediaType} post`}
-                        </a>
-                      ) : (
-                        <span className="text-foreground truncate block">
-                          {p.caption || `${p.mediaType} post`}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {p.thumbnailUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={p.thumbnailUrl}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            className="h-10 w-10 shrink-0 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 shrink-0 rounded bg-surface-hover" />
+                        )}
+                        <div className="min-w-0">
+                          {p.permalink ? (
+                            <a
+                              href={p.permalink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-foreground hover:text-accent truncate block"
+                            >
+                              {p.caption || `Publicação ${p.mediaType}`}
+                            </a>
+                          ) : (
+                            <span className="text-foreground truncate block">
+                              {p.caption || `Publicação ${p.mediaType}`}
+                            </span>
+                          )}
+                          <span className="text-xs text-zinc-500">{p.mediaType}</span>
+                        </div>
+                      </div>
                     </td>
                     <td className="py-3 px-3 text-right text-muted">
                       {formatNumber(p.views)}

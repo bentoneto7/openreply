@@ -3,6 +3,7 @@ import {
   getFollowerCountSeries,
   getUserInfo,
   type FollowerCountPoint,
+  type InstagramUser,
 } from "@/lib/meta/client";
 
 export interface FollowerHistoryPoint {
@@ -169,14 +170,18 @@ export async function getFollowerHistory(
  * Ensure an account has a current snapshot and, the first time we ever see it,
  * a backfilled history. Called from the overview endpoint so the chart fills in
  * without waiting for the next cron run.
+ *
+ * Returns the whole profile this already had to fetch, not just the follower
+ * count: the overview panel renders the avatar and name too, and a second
+ * `/me` call for fields already in hand is a round trip for nothing.
  */
 export async function ensureFollowerHistory(
   account: { id: string; instagramId: string },
   accessToken: string
-): Promise<number | null> {
+): Promise<InstagramUser> {
   const info = await getUserInfo(accessToken);
   const followers = info.followers_count;
-  if (typeof followers !== "number") return null;
+  if (typeof followers !== "number") return info;
 
   await recordFollowerSnapshot(account.id, followers);
 
@@ -192,5 +197,5 @@ export async function ensureFollowerHistory(
     );
   }
 
-  return followers;
+  return info;
 }

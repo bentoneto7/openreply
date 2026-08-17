@@ -68,7 +68,13 @@ beforeEach(() => {
   mockPrisma.instagramAccount.findMany.mockResolvedValue([
     { id: "account_1", username: "conta" },
   ]);
-  mockFollowers.ensureFollowerHistory.mockResolvedValue(100);
+  // Devolve o perfil inteiro: a rota lê followers_count, nome e avatar daqui.
+  mockFollowers.ensureFollowerHistory.mockResolvedValue({
+    username: "conta",
+    name: "Conta Teste",
+    profile_picture_url: "https://cdn/avatar.jpg",
+    followers_count: 100,
+  });
   mockFollowers.getFollowerHistory.mockResolvedValue([]);
 });
 
@@ -111,6 +117,29 @@ describe("GET /api/instagram/overview — métricas sem a permissão de insights
 
     expect(data.insightsAvailable).toBe(true);
     expect(data.totals.reach).toBe(200);
+  });
+
+  it("não publica taxa de engajamento sem alcance medido", async () => {
+    mockMeta.getAllUserMedia.mockResolvedValue([media("a", 3, 10)]);
+    mockMeta.getMediaInsights.mockRejectedValue(new PermissionError("sem escopo"));
+
+    const data = await load();
+
+    expect(data.totals.interactions).toBeNull();
+    expect(data.engagementRate).toBeNull();
+  });
+
+  it("calcula a taxa de engajamento quando interações e alcance vêm medidos", async () => {
+    mockMeta.getAllUserMedia.mockResolvedValue([media("a", 3, 10)]);
+    mockMeta.getMediaInsights.mockResolvedValue({
+      reach: 200,
+      total_interactions: 50,
+    });
+
+    const data = await load();
+
+    expect(data.totals.interactions).toBe(50);
+    expect(data.engagementRate).toBe(25);
   });
 
   it("trata resposta vazia da Meta como insights indisponíveis", async () => {

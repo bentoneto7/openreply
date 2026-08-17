@@ -568,6 +568,12 @@ export async function getConversationMessages(
   return data.messages?.data ?? [];
 }
 
+/**
+ * The connected professional account, from the documented `GET /me` edge of
+ * Business Login for Instagram. `user_id` and `username` are the two fields
+ * Meta's Get Started page names; the rest are standard on the same edge and
+ * come back absent (not as an error) when a scope does not cover them.
+ */
 export async function getUserInfo(accessToken: string): Promise<InstagramUser> {
   const url = new URL(`${instagramGraphBase()}/me`);
   url.searchParams.set(
@@ -577,43 +583,6 @@ export async function getUserInfo(accessToken: string): Promise<InstagramUser> {
   url.searchParams.set("access_token", accessToken);
 
   const response = await fetch(url.toString());
-
-  if (!response.ok) {
-    // Every graph.instagram.com path has answered this token with the same
-    // code 100 prose, which names neither the request nor the reason and has
-    // already sent three fixes after the wrong cause. Stop guessing from one
-    // data point: probe the plausible shapes and report which, if any, Meta
-    // accepts. Probes carry the token in the query string or header exactly as
-    // the real calls do, and only status/code/host are ever reported back.
-    const probes: [string, RequestInit, string][] = [
-      ["ig-root-query", {}, `https://graph.instagram.com/me?fields=user_id&access_token=${accessToken}`],
-      [
-        "ig-root-bearer",
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-        "https://graph.instagram.com/me?fields=user_id",
-      ],
-      ["fb-v23-query", {}, `https://graph.facebook.com/v23.0/me?fields=id&access_token=${accessToken}`],
-      ["ig-me-nofields", {}, `https://graph.instagram.com/me?access_token=${accessToken}`],
-    ];
-
-    const results: string[] = [];
-    for (const [label, init, probeUrl] of probes) {
-      try {
-        const r = await fetch(probeUrl, { ...init, cache: "no-store" });
-        const j = (await r.json().catch(() => ({}))) as Partial<GraphApiError>;
-        results.push(`${label}:${r.status}/${j.error?.code ?? "ok"}`);
-      } catch {
-        results.push(`${label}:neterr`);
-      }
-    }
-
-    const err = (await response.json().catch(() => ({}))) as Partial<GraphApiError>;
-    throw new Error(
-      `${url.origin}${url.pathname} -> ${response.status} code=${err.error?.code} ` +
-        `${err.error?.message} | probes ${results.join(" ")}`
-    );
-  }
-
   return unwrapSingle<InstagramUser>(await handleResponse<unknown>(response));
 }
 

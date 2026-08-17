@@ -75,6 +75,12 @@ export interface OverviewPost {
 
 export interface OverviewResponse {
   account: { id: string; username: string };
+  /**
+   * Live profile of the selected account. Null when the `/me` lookup failed —
+   * the panel then falls back to the stored username and shows no avatar,
+   * rather than blocking on a field that is only decoration.
+   */
+  profile: { username: string; name: string | null; avatarUrl: string | null } | null;
   accounts: Array<{ id: string; username: string }>;
   requestedCount: "all" | number;
   truncated: boolean;
@@ -104,7 +110,14 @@ export interface OverviewResponse {
     comments: number;
     saved: number | null;
     shares: number | null;
+    interactions: number | null;
   };
+  /**
+   * Interactions ÷ reach over the selected posts, as a percentage. Null unless
+   * both sides are known — an engagement rate computed against a partial reach
+   * would read as a real number while being arithmetic on missing data.
+   */
+  engagementRate: number | null;
   /** Ordered by the ranking below: most-commented post first. */
   posts: OverviewPost[];
 }
@@ -232,7 +245,15 @@ export async function GET(request: NextRequest) {
       comments: posts.reduce((n, p) => n + p.comments, 0),
       saved: sumOrNull(posts.map((p) => p.saved)),
       shares: sumOrNull(posts.map((p) => p.shares)),
+      // Instagram's own total_interactions, summed straight off the insight
+      // payloads — order-independent, so the post sort below cannot affect it.
+      interactions: sumOrNull(insights.map((ins) => ins?.total_interactions ?? null)),
     };
+
+    const engagementRate =
+      totals.interactions !== null && totals.reach
+        ? Number(((totals.interactions / totals.reach) * 100).toFixed(1))
+        : null;
 
     const accounts = await prisma.instagramAccount.findMany({
       where: { workspaceId },
@@ -244,12 +265,19 @@ export async function GET(request: NextRequest) {
     // `totals`, which sums over the selected posts. A failure here must not
     // take down the rest of the overview.
     let followers: number | null = null;
+    let profile: OverviewResponse["profile"] = null;
     let followerHistory: FollowerHistoryPoint[] = [];
     try {
-      followers = await ensureFollowerHistory(
+      const info = await ensureFollowerHistory(
         { id: account.id, instagramId: account.instagramId },
         accessToken
       );
+      followers = info.followers_count ?? null;
+      profile = {
+        username: info.username ?? account.username,
+        name: info.name ?? null,
+        avatarUrl: info.profile_picture_url ?? null,
+      };
       followerHistory = await getFollowerHistory(account.id);
     } catch (err) {
       console.warn(
@@ -260,6 +288,7 @@ export async function GET(request: NextRequest) {
 
     const data: OverviewResponse = {
       account: { id: account.id, username: account.username },
+      profile,
       accounts,
       requestedCount,
       truncated,
@@ -267,6 +296,7 @@ export async function GET(request: NextRequest) {
       followers,
       followerHistory,
       totals,
+      engagementRate,
       posts,
     };
 
