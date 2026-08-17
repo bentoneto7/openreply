@@ -6,12 +6,20 @@
 
 import { Queue } from "bullmq";
 import Redis from "ioredis";
+import { requireEnv } from "@/lib/env";
 
 let connection: Redis | null = null;
 
 export function getRedisConnection(): Redis {
   if (!connection) {
-    connection = new Redis(process.env.REDIS_URL!, {
+    // requireEnv, not `process.env.REDIS_URL!`: ioredis reads a missing URL as
+    // "connect to localhost:6379" rather than as an error. A worker deployed
+    // without REDIS_URL therefore boots clean, prints "[DM Worker] Started",
+    // and then writes its heartbeat into a Redis nobody reads — the host shows
+    // a healthy container while the dashboard reports no worker at all and no
+    // DM is ever sent. Refuse to start, naming the variable, so the failure
+    // lands in the deploy logs instead of masquerading as a running service.
+    connection = new Redis(requireEnv("REDIS_URL"), {
       maxRetriesPerRequest: null, // Required by BullMQ
     });
   }
