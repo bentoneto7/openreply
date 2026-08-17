@@ -63,6 +63,37 @@ Error: P1001: Can't reach database server at `<db-service-name>:5432`
 
 if you try to run migrations as part of the build (e.g. via the `vercel-build` script, which bundles `prisma generate && prisma migrate deploy && next build` together). The fix is the build/start command split shown above — `prisma generate` and `next build` happen at build time (no DB needed), while `prisma migrate deploy` runs in the start command, once the container is actually live and on the network.
 
+## Gotcha #4 — A worker without `REDIS_URL` looks healthy and does nothing
+
+The worker and the web app are two separate Dokploy Applications with two
+separate environment variable sets. It is easy to fill in the web app's and
+forget the worker's, and the failure that follows is the hardest kind to read:
+
+- Dokploy shows the worker container **running**, with no restarts
+- The worker logs `[DM Worker] Started`, then nothing
+- `/api/health` reports `database: ok`, `redis: ok`, `queue: ok` — because those
+  checks run in the *web app*, which does have its variables
+- The same response reports `worker: { healthy: false, heartbeat: null }`, and
+  `/diagnostics` shows "Nenhum sinal do worker" with every queue at zero
+- Comments arrive, keywords match, and no DM is ever sent
+
+`getRedisConnection` now refuses to start when `REDIS_URL` is missing, naming the
+variable, so this shows up in the worker's deploy log instead. Older revisions
+did not: `ioredis` reads a missing URL as `localhost:6379` rather than as an
+error, so the worker connected to a Redis inside its own container, wrote its
+heartbeat there, and consumed nothing from the real queue.
+
+If the worker heartbeat is missing, check in this order:
+
+1. Does the worker Application exist at all? It is a *second* Application, easy
+   to skip on first setup (step 6 below).
+2. Does it have `REDIS_URL`, and is it the exact same value as the web app's? A
+   heartbeat written to a different Redis is invisible, not an error.
+3. Same question for `DATABASE_URL` and `ENCRYPTION_KEY` — those three must match
+   between both apps or sends fail to decrypt.
+4. Is `NIXPACKS_START_CMD=npm run worker` set? Without it Nixpacks starts the web
+   server in the worker Application, which serves HTTP and processes no jobs.
+
 ## Step-by-step
 
 1. Fork this repo.
