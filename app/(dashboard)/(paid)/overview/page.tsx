@@ -181,9 +181,9 @@ export default function OverviewPage() {
       {!insightsAvailable && (
         <div className="panel rounded p-4 border border-border">
           <p className="text-sm text-foreground">
-            Visualizações, Alcance, Salvos e Compartilhamentos dependem da
-            permissão de insights do Instagram, que ainda depende de aprovação
-            da Meta.
+            Visualizações, Alcance, Salvos, Compartilhamentos, Interações e a
+            Taxa de engajamento dependem da permissão de insights do Instagram,
+            que ainda depende de aprovação da Meta.
           </p>
           <p className="text-sm text-muted mt-1">
             Enquanto isso essas métricas aparecem como “—”: não são zero, são
