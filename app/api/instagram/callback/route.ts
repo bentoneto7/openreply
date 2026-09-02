@@ -10,6 +10,10 @@ import {
   verifyOAuthState,
 } from "@/lib/meta/oauth";
 import { canManageWorkspace } from "@/lib/workspace-access";
+import {
+  logServerError,
+  logServerWarning,
+} from "@/lib/security/safe-error";
 
 async function runInstagramStep<T>(step: string, action: () => Promise<T>): Promise<T> {
   try {
@@ -108,8 +112,8 @@ export async function GET(request: NextRequest) {
       );
       webhookSubscribed = Boolean(subscription.success);
     } catch (subscriptionError) {
-      console.warn(
-        "[Instagram Callback] Webhook subscription failed:",
+      logServerWarning(
+        "[Instagram Callback] Webhook subscription failed",
         subscriptionError
       );
     }
@@ -135,12 +139,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.redirect(`${baseUrl}/dashboard?connected=true`);
+    return NextResponse.redirect(`${baseUrl}/onboarding?connected=true`);
   } catch (err) {
     const message = `[scopes ${grantedLabel}] ${
       err instanceof Error ? err.message : "Unknown error"
     }`;
-    console.error("[Instagram Callback] Error:", err);
+    logServerError("[Instagram Callback] Error", err);
     // The message is the only diagnostic a self-hoster gets for a failed
     // connect, so persist it alongside the other operational events rather
     // than leaving it in server logs they may not be able to reach.

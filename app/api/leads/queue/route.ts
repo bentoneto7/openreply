@@ -5,6 +5,7 @@ import { getWorkspaceInstagramAccount } from "@/lib/instagram-accounts";
 import { getConversations, getUserFollowStatus, MetaApiError } from "@/lib/meta/client";
 import { decryptToken } from "@/lib/meta/oauth";
 import { buildDmQueue, selectInboundThreads, DmQueueAccountIdentityError } from "@/lib/leads/dm-queue";
+import { logServerError } from "@/lib/security/safe-error";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
         { status: 409 }
       );
     }
-    console.error("[LeadsQueue] Error:", err);
+    logServerError("[LeadsQueue] Error", err);
     const message = err instanceof MetaApiError ? err.message : "Falha ao montar a fila de leads";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }

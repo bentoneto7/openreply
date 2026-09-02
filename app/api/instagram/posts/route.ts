@@ -3,6 +3,7 @@ import { getCurrentWorkspaceId } from "@/lib/auth";
 import { getWorkspaceInstagramAccount } from "@/lib/instagram-accounts";
 import { getAllUserMedia, getUserMedia } from "@/lib/meta/client";
 import { decryptToken } from "@/lib/meta/oauth";
+import { logServerError } from "@/lib/security/safe-error";
 
 export async function GET(request: NextRequest) {
   const workspaceId = await getCurrentWorkspaceId();
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: posts });
   } catch (err) {
-    console.error("[Instagram Posts] Error:", err);
+    logServerError("[Instagram Posts] Error", err);
     return NextResponse.json(
       { success: false, error: "Failed to fetch Instagram posts" },
       { status: 500 }

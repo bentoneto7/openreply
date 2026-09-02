@@ -14,6 +14,10 @@ import {
   getFollowerHistory,
   type FollowerHistoryPoint,
 } from "@/lib/reports/follower-history";
+import {
+  logServerError,
+  logServerWarning,
+} from "@/lib/security/safe-error";
 
 // Allow time for paginated media + per-post insight calls on larger accounts.
 export const maxDuration = 60;
@@ -188,10 +192,9 @@ export async function GET(request: NextRequest) {
           return await getMediaInsights(accessToken, m.id, metrics);
         } catch (err) {
           if (!(err instanceof PermissionError)) {
-            console.warn(
-              "[Instagram Overview] Insights unavailable for media:",
-              m.id,
-              err instanceof Error ? err.message : err
+            logServerWarning(
+              "[Instagram Overview] Insights unavailable for media",
+              err
             );
           }
           return null;
@@ -280,9 +283,9 @@ export async function GET(request: NextRequest) {
       };
       followerHistory = await getFollowerHistory(account.id);
     } catch (err) {
-      console.warn(
-        "[Instagram Overview] Follower history unavailable:",
-        err instanceof Error ? err.message : err
+      logServerWarning(
+        "[Instagram Overview] Follower history unavailable",
+        err
       );
     }
 
@@ -302,7 +305,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (err) {
-    console.error("[Instagram Overview] Error:", err);
+    logServerError("[Instagram Overview] Error", err);
     return NextResponse.json(
       { success: false, error: "Failed to load Instagram overview" },
       { status: 500 }
