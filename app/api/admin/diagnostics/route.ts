@@ -1,32 +1,43 @@
 import { NextResponse } from "next/server";
-import { getCurrentWorkspaceId } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
-import { getDMQueue } from "@/lib/queue/client";
 import { getWorkerAlerts, getWorkerHealth } from "@/lib/ops/worker-health";
+import {
+  canManageWorkspace,
+  getCurrentWorkspaceContext,
+} from "@/lib/workspace-access";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) {
+  const context = await getCurrentWorkspaceContext();
+  if (!context) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 }
     );
   }
+  if (!canManageWorkspace(context.role)) {
+    return NextResponse.json(
+      { success: false, error: "Forbidden" },
+      { status: 403 }
+    );
+  }
+
+  const workspaceId = context.workspaceId;
 
   const [
-    queueCounts,
     workerHealth,
-    workerAlerts,
+    rawWorkerAlerts,
     webhookFailures,
     dmFailures,
     tokenRefreshFailures,
     operationalEvents,
+    instagramAccounts,
   ] = await Promise.all([
-    getDMQueue().getJobCounts("waiting", "active", "delayed", "failed"),
     getWorkerHealth(),
-    getWorkerAlerts(10),
+    // O Redis mantém 25 alertas globais. Filtrar só os 10 primeiros permitiria
+    // que atividade de outro workspace escondesse os alertas desta conta.
+    getWorkerAlerts(25),
     prisma.webhookEvent.findMany({
       where: { workspaceId, status: "FAILED" },
       orderBy: { createdAt: "desc" },
@@ -71,13 +82,10 @@ export async function GET() {
         id: true,
         message: true,
         createdAt: true,
-        payload: true,
       },
     }),
     prisma.operationalEvent.findMany({
-      where: {
-        OR: [{ workspaceId }, { workspaceId: null }],
-      },
+      where: { workspaceId },
       orderBy: { createdAt: "desc" },
       take: 20,
       select: {
@@ -89,18 +97,39 @@ export async function GET() {
         resolvedAt: true,
       },
     }),
+    prisma.instagramAccount.findMany({
+      where: { workspaceId },
+      select: { instagramId: true },
+    }),
   ]);
 
-  return NextResponse.json({
-    success: true,
-    data: {
-      queueCounts,
-      workerHealth,
-      workerAlerts,
-      webhookFailures,
-      dmFailures,
-      tokenRefreshFailures,
-      operationalEvents,
+  const workspaceInstagramIds = new Set(
+    instagramAccounts.map((account) => account.instagramId)
+  );
+  const workerAlerts = rawWorkerAlerts.filter(
+    (alert) =>
+      alert.instagramAccountId !== undefined &&
+      workspaceInstagramIds.has(alert.instagramAccountId)
+  ).slice(0, 10);
+
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        // BullMQ is shared by every workspace and its aggregate counters do
+        // not carry tenant ownership. Reporting them here would expose other
+        // customers' activity, so keep the metric explicitly unavailable
+        // until queue telemetry is partitioned by workspace.
+        queueCounts: null,
+        queueCountsReason: "queue_telemetry_not_partitioned_by_workspace",
+        workerHealth,
+        workerAlerts,
+        webhookFailures,
+        dmFailures,
+        tokenRefreshFailures,
+        operationalEvents,
+      },
     },
-  });
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

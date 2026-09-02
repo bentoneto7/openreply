@@ -1,287 +1,186 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import StatusBadge from "@/components/status-badge";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  RefreshCw,
+  ServerCog,
+} from "lucide-react";
+import type { Opportunity } from "@/lib/crm/client-types";
 
 interface DiagnosticsData {
-  queueCounts: Record<string, number>;
+  queueCounts: Record<string, number> | null;
+  queueCountsReason: string | null;
   workerHealth: {
     healthy: boolean;
     ageMs: number | null;
-    heartbeat: {
-      checkedAt: string;
-      hostname?: string;
-      pid: number;
-      startedAt?: string;
-    } | null;
+    heartbeat: { checkedAt: string; hostname?: string; pid: number; startedAt?: string } | null;
   };
-  workerAlerts: Array<{
-    level: string;
-    message: string;
-    jobId?: string;
-    commentId?: string;
-    createdAt: string;
-  }>;
-  webhookFailures: Array<{
-    id: string;
-    object: string | null;
-    errorMessage: string | null;
-    createdAt: string;
-  }>;
-  dmFailures: Array<{
-    id: string;
-    status: string;
-    commentId: string;
-    commentText: string;
-    errorMessage: string | null;
-    updatedAt: string;
-    automation: { name: string };
-  }>;
-  tokenRefreshFailures: Array<{
-    id: string;
-    message: string;
-    createdAt: string;
-  }>;
-  operationalEvents: Array<{
-    id: string;
-    source: string;
-    level: string;
-    message: string;
-    createdAt: string;
-    resolvedAt: string | null;
-  }>;
+  workerAlerts: Array<{ level: string; message: string; createdAt: string }>;
+  webhookFailures: Array<{ id: string; object: string | null; errorMessage: string | null; createdAt: string }>;
+  dmFailures: Array<{ id: string; status: string; commentId: string; commentText: string; errorMessage: string | null; updatedAt: string; automation: { name: string } }>;
+  tokenRefreshFailures: Array<{ id: string; message: string; createdAt: string }>;
+  operationalEvents: Array<{ id: string; source: string; level: string; message: string; createdAt: string; resolvedAt: string | null }>;
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleString();
-}
-
-function EmptyState({ label }: { label: string }) {
-  return <p className="py-5 text-center text-sm text-muted">{label}</p>;
-}
-
-function Section({
-  title,
-  children,
-}: {
+type Issue = {
   title: string;
-  children: React.ReactNode;
-}) {
+  impact: string;
+  cause: string;
+  action: string;
+  href: string;
+  severity: "warning" | "error";
+};
+
+function Metric({ label, value, helper, alert = false }: { label: string; value: string | number; helper: string; alert?: boolean }) {
   return (
-    <section className="panel rounded p-4 sm:p-6">
-      <h2 className="text-base font-semibold text-foreground">{title}</h2>
-      <div className="mt-4">{children}</div>
-    </section>
+    <article className="panel rounded p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
+      <p className={`mt-3 text-2xl font-semibold ${alert ? "text-error" : "text-foreground"}`}>{value}</p>
+      <p className="mt-2 text-xs leading-5 text-muted">{helper}</p>
+    </article>
   );
 }
 
 export default function DiagnosticsPage() {
-  const [data, setData] = useState<DiagnosticsData | null>(null);
+  const [technical, setTechnical] = useState<DiagnosticsData | null>(null);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [technicalForbidden, setTechnicalForbidden] = useState(false);
+  const [loadedAt, setLoadedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  async function refreshDiagnostics() {
+  const load = useCallback(async () => {
     setLoading(true);
-    const response = await fetch("/api/admin/diagnostics");
-    const payload = await response.json();
-    if (payload.success) {
-      setData(payload.data);
-    }
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadInitialDiagnostics() {
-      const response = await fetch("/api/admin/diagnostics");
-      const payload = await response.json();
-      if (active && payload.success) {
-        setData(payload.data);
+    setError(null);
+    try {
+      const [technicalResponse, opportunitiesResponse] = await Promise.all([
+        fetch("/api/admin/diagnostics", { cache: "no-store" }),
+        fetch("/api/opportunities?limit=100", { cache: "no-store" }),
+      ]);
+      const [technicalPayload, opportunitiesPayload] = await Promise.all([
+        technicalResponse.json(),
+        opportunitiesResponse.json(),
+      ]);
+      if (!opportunitiesResponse.ok || !opportunitiesPayload.success) {
+        throw new Error(opportunitiesPayload.error ?? "Não foi possível carregar a saúde comercial");
       }
-      if (active) {
-        setLoading(false);
+      setOpportunities(opportunitiesPayload.data.items);
+      if (technicalResponse.status === 403) {
+        setTechnicalForbidden(true);
+        setTechnical(null);
+      } else if (!technicalResponse.ok || !technicalPayload.success) {
+        throw new Error(technicalPayload.error ?? "Não foi possível carregar a saúde técnica");
+      } else {
+        setTechnicalForbidden(false);
+        setTechnical(technicalPayload.data);
       }
+      setLoadedAt(Date.now());
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Não foi possível carregar o diagnóstico");
+    } finally {
+      setLoading(false);
     }
-
-    void loadInitialDiagnostics();
-
-    return () => {
-      active = false;
-    };
   }, []);
 
-  if (loading && !data) {
-    return <div className="panel rounded p-8 h-64" />;
-  }
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
-  const workerAgeSeconds =
-    data?.workerHealth.ageMs == null
-      ? null
-      : Math.round(data.workerHealth.ageMs / 1000);
+  const commercial = useMemo(() => {
+    const now = loadedAt ?? 0;
+    const open = opportunities.filter((item) => item.status !== "GANHO" && item.status !== "PERDIDO");
+    return {
+      unassigned: open.filter((item) => !item.assignee).length,
+      unanswered: open.filter((item) => item.status === "NOVO").length,
+      overdue: open.filter((item) => item.commercial.nextActionAt && new Date(item.commercial.nextActionAt).getTime() < now).length,
+      stalled: open.filter((item) => item.status === "NEGOCIANDO" && new Date(item.updatedAt).getTime() < now - 3 * 24 * 60 * 60 * 1000).length,
+      won: opportunities.filter((item) => item.status === "GANHO").length,
+      lost: opportunities.filter((item) => item.status === "PERDIDO").length,
+    };
+  }, [loadedAt, opportunities]);
+
+  const issues = useMemo(() => {
+    const next: Issue[] = [];
+    if (technical && !technical.workerHealth.healthy) next.push({ title: "Worker sem sinal recente", impact: "Comentários podem não avançar para o envio de DM.", cause: "Processo parado, Redis indisponível ou heartbeat expirado.", action: "Verificar o serviço do worker", href: "/diagnostics#saude-tecnica", severity: "error" });
+    if (technical?.dmFailures.length) next.push({ title: `${technical.dmFailures.length} envio(s) com falha ou bloqueio`, impact: "A experiência configurada pode não ter chegado ao contato.", cause: "Limite, regra de envio, falha da Meta ou configuração incompleta.", action: "Revisar falhas recentes", href: "/diagnostics#falhas-tecnicas", severity: "error" });
+    if (technical?.webhookFailures.length) next.push({ title: `${technical.webhookFailures.length} webhook(s) com falha`, impact: "Novos eventos podem ter exigido reconciliação.", cause: "Payload inválido, permissão ou erro temporário de processamento.", action: "Revisar eventos do webhook", href: "/diagnostics#falhas-tecnicas", severity: "warning" });
+    if (commercial.unassigned) next.push({ title: `${commercial.unassigned} oportunidade(s) sem responsável`, impact: "Contatos podem ficar sem continuidade.", cause: "Atribuição ainda não realizada.", action: "Distribuir no pipeline", href: "/opportunities", severity: "warning" });
+    if (commercial.overdue) next.push({ title: `${commercial.overdue} follow-up(s) vencido(s)`, impact: "O próximo contato planejado já passou do prazo.", cause: "Próxima ação não concluída ou não reagendada.", action: "Revisar prazos", href: "/opportunities", severity: "error" });
+    if (commercial.stalled) next.push({ title: `${commercial.stalled} negociação(ões) parada(s)`, impact: "Oportunidades abertas estão sem avanço há mais de três dias.", cause: "Falta de resposta, objeção ou próxima ação indefinida.", action: "Abrir negociações", href: "/opportunities?status=NEGOCIANDO", severity: "warning" });
+    return next;
+  }, [commercial, technical]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div className="mx-auto max-w-6xl space-y-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Production Diagnostics
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            Health, queues, webhook failures, billing events, and worker alerts.
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">Saúde operacional</p>
+          <h1 className="mt-2 text-2xl font-bold text-foreground">Diagnóstico</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted">Saúde técnica e saúde comercial são verificadas separadamente.</p>
         </div>
-        <button
-          onClick={() => void refreshDiagnostics()}
-          className="rounded border border-border bg-surface px-4 py-2 text-sm font-semibold text-foreground transition hover:border-border-hover"
-        >
-          Refresh
-        </button>
-      </div>
+        <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-border bg-surface px-4 text-sm font-semibold hover:border-border-hover disabled:opacity-50"><RefreshCw className="h-4 w-4" aria-hidden="true" />{loading ? "Atualizando..." : "Atualizar"}</button>
+      </header>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-        <div className="panel rounded p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase text-muted">
-            Worker health
-          </p>
-          <p
-            className={`mt-3 text-2xl font-bold ${
-              data?.workerHealth.healthy ? "text-success" : "text-warning"
-            }`}
-          >
-            {data?.workerHealth.healthy ? "Saudável" : "Precisa de atenção"}
-          </p>
-          <p className="mt-2 text-xs text-muted">
-            {workerAgeSeconds == null
-              ? "Nenhum sinal do worker"
-              : `Last heartbeat ${workerAgeSeconds}s ago`}
-          </p>
-        </div>
-        {["waiting", "active", "delayed", "failed"].map((key) => (
-          <div key={key} className="panel rounded p-4 sm:p-5">
-            <p className="text-xs font-semibold uppercase text-muted">
-              Queue {key}
-            </p>
-            <p className="mt-3 text-2xl font-bold text-foreground">
-              {data?.queueCounts[key] ?? 0}
-            </p>
-          </div>
-        ))}
-      </div>
+      {error && <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">{error}</div>}
 
-      <Section title="Recentes Worker Alerts">
-        {data?.workerAlerts.length ? (
-          <div className="space-y-3">
-            {data.workerAlerts.map((alert) => (
-              <div
-                key={`${alert.createdAt}-${alert.jobId ?? alert.message}`}
-                className="rounded border border-border bg-surface/50 p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                  <p className="min-w-0 flex-1 break-words text-sm font-semibold text-foreground">
-                    {alert.message}
-                  </p>
-                  <span className="shrink-0 rounded-full bg-error/10 px-2 py-1 text-xs font-semibold text-error">
-                    {alert.level}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-muted">
-                  {formatDate(alert.createdAt)}
-                  {alert.commentId ? ` · ${alert.commentId}` : ""}
-                </p>
+      {loading && !loadedAt ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <div key={index} className="panel h-32 rounded" />)}</div> : (
+        <>
+          <section aria-labelledby="saude-comercial" className="space-y-4">
+            <div><h2 id="saude-comercial" className="text-lg font-semibold">Saúde comercial</h2><p className="mt-1 text-xs text-muted">Ações pendentes nas oportunidades persistidas.</p></div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Metric label="Sem responsável" value={commercial.unassigned} helper="Oportunidades abertas sem pessoa atribuída." alert={commercial.unassigned > 0} />
+              <Metric label="Sem primeira abordagem" value={commercial.unanswered} helper="Oportunidades ainda na etapa Novo." alert={commercial.unanswered > 0} />
+              <Metric label="Follow-ups vencidos" value={commercial.overdue} helper="Prazo da próxima ação já expirou." alert={commercial.overdue > 0} />
+              <Metric label="Negociações paradas" value={commercial.stalled} helper="Sem atualização há mais de três dias." alert={commercial.stalled > 0} />
+              <Metric label="Ganhas" value={commercial.won} helper="Etapa ganha; receita depende de venda confirmada." />
+              <Metric label="Perdidas" value={commercial.lost} helper="Oportunidades encerradas com motivo obrigatório." />
+            </div>
+          </section>
+
+          <section id="saude-tecnica" aria-labelledby="titulo-saude-tecnica" className="space-y-4 scroll-mt-24">
+            <div><h2 id="titulo-saude-tecnica" className="text-lg font-semibold">Saúde técnica</h2><p className="mt-1 text-xs text-muted">Conexão, worker, fila e processamento. Acesso restrito a administradores.</p></div>
+            {technicalForbidden ? (
+              <div className="rounded border border-zinc-200 bg-zinc-50 p-5"><p className="text-sm font-semibold">Dados técnicos restritos</p><p className="mt-1 text-sm text-muted">Seu papel permite trabalhar oportunidades, mas não visualizar logs operacionais do workspace.</p></div>
+            ) : technical ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Metric label="Worker" value={technical.workerHealth.healthy ? "Saudável" : "Atenção"} helper={technical.workerHealth.ageMs == null ? "Nenhum heartbeat disponível." : `Último heartbeat há ${Math.round(technical.workerHealth.ageMs / 1000)}s.`} alert={!technical.workerHealth.healthy} />
+                <Metric label="Fila aguardando" value={technical.queueCounts?.waiting ?? "—"} helper={technical.queueCounts ? "Jobs deste workspace aguardando processamento." : "Indisponível por workspace; zero não foi presumido."} />
+                <Metric label="Fila ativa" value={technical.queueCounts?.active ?? "—"} helper={technical.queueCounts ? "Jobs deste workspace em processamento agora." : "Indisponível por workspace; zero não foi presumido."} />
+                <Metric label="Fila atrasada" value={technical.queueCounts?.delayed ?? "—"} helper={technical.queueCounts ? "Jobs deste workspace agendados para nova tentativa." : "Indisponível por workspace; zero não foi presumido."} alert={(technical.queueCounts?.delayed ?? 0) > 0} />
+                <Metric label="Fila com falha" value={technical.queueCounts?.failed ?? "—"} helper={technical.queueCounts ? "Jobs deste workspace que esgotaram ou falharam." : "Indisponível por workspace; zero não foi presumido."} alert={(technical.queueCounts?.failed ?? 0) > 0} />
+                <Metric label="Falhas de token" value={technical.tokenRefreshFailures.length} helper="Renovações recentes que exigem atenção." alert={technical.tokenRefreshFailures.length > 0} />
               </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState label="No worker alerts recorded." />
-        )}
-      </Section>
+            ) : null}
+          </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Falhas e mensagens ignoradas">
-          {data?.dmFailures.length ? (
-            <div className="space-y-3">
-              {data.dmFailures.map((item) => (
-                <div key={item.id} className="border-b border-border pb-3 last:border-0">
-                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                    <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-                      {item.automation.name}
-                    </p>
-                    <StatusBadge status={item.status} />
-                  </div>
-                  <p className="mt-1 truncate text-xs text-muted">
-                    {item.commentText}
-                  </p>
-                  {item.errorMessage && (
-                    <p className="mt-1 text-xs text-error">{item.errorMessage}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState label="No DM failures or skips." />
+          <section className="panel rounded p-4 sm:p-6">
+            <div className="flex items-center gap-2">{issues.length ? <AlertTriangle className="h-5 w-5 text-warning" aria-hidden="true" /> : <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />}<h2 className="text-lg font-semibold">Problemas acionáveis</h2></div>
+            {issues.length === 0 ? <p className="mt-4 text-sm text-muted">Nenhum problema identificado nos dados disponíveis agora.</p> : (
+              <div className="mt-5 divide-y divide-border">{issues.map((issue) => (
+                <article key={issue.title} className="grid gap-3 py-4 lg:grid-cols-[minmax(180px,0.7fr)_1fr_1fr_auto] lg:items-start">
+                  <p className={`text-sm font-semibold ${issue.severity === "error" ? "text-error" : "text-warning"}`}>{issue.title}</p>
+                  <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Impacto</p><p className="mt-1 text-sm">{issue.impact}</p></div>
+                  <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Causa provável</p><p className="mt-1 text-sm">{issue.cause}</p></div>
+                  <Link href={issue.href} className="inline-flex min-h-10 items-center rounded border border-border px-3 text-sm font-semibold text-accent hover:border-border-hover">{issue.action}</Link>
+                </article>
+              ))}</div>
+            )}
+          </section>
+
+          {technical && (
+            <section id="falhas-tecnicas" className="grid scroll-mt-24 gap-6 lg:grid-cols-2">
+              <div className="panel rounded p-4 sm:p-6"><div className="flex items-center gap-2"><ServerCog className="h-5 w-5 text-accent" aria-hidden="true" /><h2 className="font-semibold">Falhas de envio</h2></div><div className="mt-4 divide-y divide-border">{technical.dmFailures.length === 0 && <p className="py-5 text-sm text-muted">Nenhuma falha recente.</p>}{technical.dmFailures.map((item) => <article key={item.id} className="py-3"><p className="text-sm font-semibold">{item.automation.name}</p><p className="mt-1 line-clamp-2 text-xs text-muted">{item.errorMessage ?? item.commentText}</p><p className="mt-1 text-xs text-muted">{new Date(item.updatedAt).toLocaleString("pt-BR")}</p></article>)}</div></div>
+              <div className="panel rounded p-4 sm:p-6"><h2 className="font-semibold">Falhas de webhook</h2><div className="mt-4 divide-y divide-border">{technical.webhookFailures.length === 0 && <p className="py-5 text-sm text-muted">Nenhuma falha recente.</p>}{technical.webhookFailures.map((item) => <article key={item.id} className="py-3"><p className="text-sm font-semibold">{item.object ?? "Evento do Instagram"}</p><p className="mt-1 text-xs text-muted">{item.errorMessage ?? "Erro sem detalhe seguro disponível"}</p><p className="mt-1 text-xs text-muted">{new Date(item.createdAt).toLocaleString("pt-BR")}</p></article>)}</div></div>
+            </section>
           )}
-        </Section>
+        </>
+      )}
 
-        <Section title="Falhas de webhook">
-          {data?.webhookFailures.length ? (
-            <div className="space-y-3">
-              {data.webhookFailures.map((event) => (
-                <div key={event.id} className="border-b border-border pb-3 last:border-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {event.object ?? "Instagram webhook"}
-                  </p>
-                  <p className="mt-1 text-xs text-error">
-                    {event.errorMessage ?? "Erro desconhecido"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    {formatDate(event.createdAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState label="No failed webhook events." />
-          )}
-        </Section>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Falhas na atualização de token">
-          {data?.tokenRefreshFailures.length ? (
-            <div className="space-y-3">
-              {data.tokenRefreshFailures.map((event) => (
-                <div key={event.id} className="border-b border-border pb-3 last:border-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {event.message}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    {formatDate(event.createdAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState label="No token refresh failures." />
-          )}
-        </Section>
-
-      </div>
-
-      <Section title="Linha do tempo operacional">
-        {data?.operationalEvents.length ? (
-          <div className="space-y-3">
-            {data.operationalEvents.map((event) => (
-              <div key={event.id} className="grid gap-2 border-b border-border pb-3 last:border-0 sm:grid-cols-[140px_1fr_auto]">
-                <p className="text-xs font-semibold text-muted">{event.source}</p>
-                <p className="text-sm text-foreground">{event.message}</p>
-                <p className="text-xs text-muted">{formatDate(event.createdAt)}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState label="No operational events recorded." />
-        )}
-      </Section>
+      <aside className="rounded border border-border bg-surface px-4 py-3 text-xs leading-5 text-muted">Contagens comerciais usam até as 100 oportunidades mais recentes retornadas pela API; se houver paginação, este diagnóstico é parcial. Logs técnicos nunca incluem tokens ou segredos.</aside>
     </div>
   );
 }
