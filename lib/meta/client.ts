@@ -1,4 +1,5 @@
 import { getMetaGraphApiVersion, requireEnv } from "@/lib/env";
+import { logServerWarning } from "@/lib/security/safe-error";
 
 // Unversioned on purpose. An Instagram Business Login token (IGAA…) is only
 // routed on the root graph.instagram.com endpoints; every versioned path comes
@@ -542,9 +543,10 @@ export async function getConversations(
     "participants,updated_time,messages.limit(1){message,from,created_time}"
   );
   url.searchParams.set("limit", "50");
-  url.searchParams.set("access_token", accessToken);
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
   const data = await handleResponse<{ data: InstagramConversation[] }>(response);
   return data.data ?? [];
 }
@@ -559,9 +561,10 @@ export async function getConversationMessages(
 ): Promise<InstagramMessage[]> {
   const url = new URL(`${instagramGraphBase()}/${conversationId}`);
   url.searchParams.set("fields", "messages{id,created_time,from,to,message}");
-  url.searchParams.set("access_token", accessToken);
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
   const data = await handleResponse<{ messages?: { data: InstagramMessage[] } }>(
     response
   );
@@ -729,10 +732,7 @@ export async function getFollowerCountSeries(
     // anything else here means the metric is simply unavailable for this
     // account, which is not worth failing the whole dashboard over.
     if (err instanceof PermissionError) throw err;
-    console.warn(
-      "[Instagram] follower_count insights unavailable:",
-      err instanceof Error ? err.message : err
-    );
+    logServerWarning("[Instagram] follower_count insights unavailable", err);
     return null;
   }
 }

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentWorkspaceId } from "@/lib/auth";
 import { getWorkspaceInstagramAccount } from "@/lib/instagram-accounts";
-import { getConversationMessages, MetaApiError } from "@/lib/meta/client";
+import {
+  getConversationMessages,
+  getConversations,
+  MetaApiError,
+} from "@/lib/meta/client";
 import { decryptToken } from "@/lib/meta/oauth";
+import { findOwnedConversation } from "@/lib/meta/conversation-access";
+import { logServerError } from "@/lib/security/safe-error";
 
 export interface ThreadMessage {
   id: string;
@@ -23,7 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
   const workspaceId = await getCurrentWorkspaceId();
   if (!workspaceId) {
     return NextResponse.json(
-      { success: false, error: "Unauthorized" },
+      { success: false, error: "Não autorizado" },
       { status: 401 }
     );
   }
@@ -36,13 +42,29 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
   );
   if (!account) {
     return NextResponse.json(
-      { success: false, error: "Instagram account not connected." },
+      { success: false, error: "Conta do Instagram não conectada." },
       { status: 400 }
     );
   }
 
   try {
     const accessToken = decryptToken(account.accessToken);
+    const conversations = await getConversations(
+      accessToken,
+      account.instagramId
+    );
+    if (
+      !findOwnedConversation(
+        conversations,
+        account.instagramId,
+        conversationId
+      )
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Conversa não encontrada nesta conta." },
+        { status: 404 }
+      );
+    }
     const raw = await getConversationMessages(accessToken, conversationId);
 
     // The API returns newest-first; reverse to read top-to-bottom.
@@ -57,11 +79,14 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
       .reverse();
 
     const data: ThreadResponse = { messages };
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json(
+      { success: true, data },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (err) {
-    console.error("[Conversation Messages] Error:", err);
+    logServerError("[Conversation Messages] Error", err);
     const message =
-      err instanceof MetaApiError ? err.message : "Failed to load messages";
+      err instanceof MetaApiError ? err.message : "Não foi possível carregar as mensagens";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
