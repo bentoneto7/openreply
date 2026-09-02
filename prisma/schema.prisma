@@ -23,11 +23,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts          Account[]
-  sessions          Session[]
-  ownedWorkspaces   Workspace[]       @relation("WorkspaceOwner")
-  workspaceMembers  WorkspaceMember[]
-  sentInvitations   WorkspaceInvitation[] @relation("WorkspaceInvitationsSent")
+  accounts         Account[]
+  sessions         Session[]
+  ownedWorkspaces  Workspace[]           @relation("WorkspaceOwner")
+  workspaceMembers WorkspaceMember[]
+  sentInvitations  WorkspaceInvitation[] @relation("WorkspaceInvitationsSent")
 }
 
 model Account {
@@ -77,14 +77,14 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  usagePeriodStart  DateTime @default(now())
-  dmsSentThisPeriod Int      @default(0)
-  subscriptionStatus     SubscriptionStatus @default(NONE)
-  stripeCustomerId       String?            @unique
-  stripeSubscriptionId   String?            @unique
-  stripePriceId          String?
-  subscriptionPeriodEnd  DateTime?
-  cancelAtPeriodEnd      Boolean            @default(false)
+  usagePeriodStart      DateTime           @default(now())
+  dmsSentThisPeriod     Int                @default(0)
+  subscriptionStatus    SubscriptionStatus @default(NONE)
+  stripeCustomerId      String?            @unique
+  stripeSubscriptionId  String?            @unique
+  stripePriceId         String?
+  subscriptionPeriodEnd DateTime?
+  cancelAtPeriodEnd     Boolean            @default(false)
 
   members           WorkspaceMember[]
   invitations       WorkspaceInvitation[]
@@ -92,6 +92,8 @@ model Workspace {
   automations       Automation[]
   dmLogs            DmLog[]
   leads             Lead[]
+  leadEvents        LeadEvent[]
+  sales             Sale[]
   trackedLinks      TrackedLink[]
   linkClicks        LinkClick[]
   webhookEvents     WebhookEvent[]
@@ -102,14 +104,14 @@ model Workspace {
 }
 
 model BillingEvent {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   workspaceId   String?
-  stripeEventId String   @unique
+  stripeEventId String    @unique
   type          String
   payload       Json
   processedAt   DateTime?
   errorMessage  String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
 
@@ -125,10 +127,13 @@ model WorkspaceMember {
   role        WorkspaceRole @default(OWNER)
   createdAt   DateTime      @default(now())
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace     Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedLeads Lead[]      @relation("LeadAssignee")
+  leadEvents    LeadEvent[] @relation("LeadEventActor")
 
   @@unique([workspaceId, userId])
+  @@unique([id, workspaceId])
   @@index([userId])
 }
 
@@ -155,24 +160,25 @@ model WorkspaceInvitation {
 }
 
 model InstagramAccount {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   workspaceId       String
-  instagramId       String   @unique
+  instagramId       String    @unique
   username          String
   name              String?
   accessToken       String
   tokenExpiresAt    DateTime?
-  webhookSubscribed Boolean  @default(false)
-  connectedAt       DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  webhookSubscribed Boolean   @default(false)
+  connectedAt       DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  automations Automation[]
-  dmLogs      DmLog[]
-  leads       Lead[]
-  linkClicks  LinkClick[]
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  automations       Automation[]
+  dmLogs            DmLog[]
+  leads             Lead[]
+  linkClicks        LinkClick[]
   followerSnapshots FollowerSnapshot[]
 
+  @@unique([id, workspaceId])
   @@index([workspaceId])
 }
 
@@ -197,42 +203,42 @@ model FollowerSnapshot {
 }
 
 model Automation {
-  id                 String   @id @default(cuid())
+  id                 String @id @default(cuid())
   workspaceId        String
   instagramAccountId String
 
-  name           String
-  goal           String?
-  postId         String?
-  postUrl        String?
-  pendingNextReel Boolean @default(false)
-  matchAnyPost   Boolean @default(false)
-  keywords       String[]
-  matchAnyWord   Boolean @default(false)
+  name                    String
+  goal                    String?
+  postId                  String?
+  postUrl                 String?
+  pendingNextReel         Boolean  @default(false)
+  matchAnyPost            Boolean  @default(false)
+  keywords                String[]
+  matchAnyWord            Boolean  @default(false)
   // Also fire this campaign when someone sends a DM whose text matches the
   // keywords above. Independent of the post trigger — a DM has no media, so
   // postId / matchAnyPost do not apply to it.
-  dmTriggerEnabled Boolean @default(false)
-  dmMessage      String
-  openingDmEnabled     Boolean @default(false)
-  openingDmMessage     String?
-  openingDmButtonLabel String?
-  linkButtonLabel      String?
-  requireFollow           Boolean @default(false)
+  dmTriggerEnabled        Boolean  @default(false)
+  dmMessage               String
+  openingDmEnabled        Boolean  @default(false)
+  openingDmMessage        String?
+  openingDmButtonLabel    String?
+  linkButtonLabel         String?
+  requireFollow           Boolean  @default(false)
   followPromptMessage     String?
   followPromptButtonLabel String?
-  followUpEnabled Boolean @default(false)
-  followUpMessage String?
+  followUpEnabled         Boolean  @default(false)
+  followUpMessage         String?
   // Minutes to wait after the link is delivered before sending the follow-up.
   // 0 sends it right away.
-  followUpDelayMinutes Int @default(0)
-  publicReplyEnabled Boolean @default(false)
-  publicReplyMessage String?
-  publicReplyMessages String[] @default([])
-  isActive       Boolean @default(true)
-  wholeWordMatch Boolean @default(true)
-  reportShareSlug    String? @unique
-  reportShareEnabled Boolean @default(true)
+  followUpDelayMinutes    Int      @default(0)
+  publicReplyEnabled      Boolean  @default(false)
+  publicReplyMessage      String?
+  publicReplyMessages     String[] @default([])
+  isActive                Boolean  @default(false)
+  wholeWordMatch          Boolean  @default(true)
+  reportShareSlug         String?  @unique
+  reportShareEnabled      Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -242,7 +248,9 @@ model Automation {
   dmLogs           DmLog[]
   trackedLinks     TrackedLink[]
   linkClicks       LinkClick[]
+  sourcedLeads     Lead[]           @relation("LeadSourceAutomation")
 
+  @@unique([id, workspaceId])
   @@index([workspaceId])
   @@index([instagramAccountId])
   @@index([postId])
@@ -250,11 +258,9 @@ model Automation {
 
 // O estado comercial de uma pessoa que interagiu com a conta.
 //
-// A temperatura do lead é sempre derivada dos sinais observados (DmLog) e não é
-// guardada aqui: recalcular é barato e evita um valor que envelhece sozinho no
-// banco. O que esta tabela guarda é a única coisa que a plataforma não consegue
-// inferir — o que a pessoa do outro lado fez a respeito do lead. Por isso venda
-// só existe como GANHO marcado à mão.
+// Lead é a oportunidade comercial canônica. Sinais automáticos guardam sua
+// proveniência, correções humanas não são sobrescritas pelo worker e receita só
+// existe no ledger Sale — nunca inferida do estágio do pipeline.
 model Lead {
   id                 String @id @default(cuid())
   workspaceId        String
@@ -268,32 +274,113 @@ model Lead {
   note            String?
   lastContactedAt DateTime?
 
+  assigneeMemberId            String?
+  assigneeWorkspaceId         String?
+  sourceAutomationId          String?
+  sourceAutomationWorkspaceId String?
+  originType                  LeadOriginType?
+  originCommentId             String?
+  originMessageId             String?
+  originPostId                String?
+  originKeyword               String?
+  originText                  String?
+  productOffer                String?
+  potentialValueCents         Int?
+  nextAction                  String?
+  nextActionAt                DateTime?
+  lossReason                  String?
+  newAt                       DateTime?           @default(now())
+  approachedAt                DateTime?
+  respondedAt                 DateTime?
+  negotiatingAt               DateTime?
+  wonAt                       DateTime?
+  lostAt                      DateTime?
+  intentCategory              LeadIntentCategory?
+  intentSignals               String[]            @default([])
+  intentSource                LeadIntentSource?
+  intentCorrectedAt           DateTime?
+  version                     Int                 @default(1)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   workspace        Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+  instagramAccount InstagramAccount @relation(fields: [instagramAccountId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  assignee         WorkspaceMember? @relation("LeadAssignee", fields: [assigneeMemberId, assigneeWorkspaceId], references: [id, workspaceId], onDelete: SetNull)
+  sourceAutomation Automation?      @relation("LeadSourceAutomation", fields: [sourceAutomationId, sourceAutomationWorkspaceId], references: [id, workspaceId], onDelete: SetNull)
+  events           LeadEvent[]
+  sales            Sale[]
 
   @@unique([instagramAccountId, commenterId])
+  @@unique([id, workspaceId])
   @@index([workspaceId])
   @@index([status])
+  @@index([workspaceId, status, updatedAt, id])
+  @@index([workspaceId, assigneeMemberId, nextActionAt])
+  @@index([workspaceId, sourceAutomationId])
+}
+
+model LeadEvent {
+  id                 String        @id @default(cuid())
+  workspaceId        String
+  leadId             String
+  type               LeadEventType
+  fromStatus         LeadStatus?
+  toStatus           LeadStatus?
+  actorMemberId      String?
+  actorWorkspaceId   String?
+  sourceEventKey     String
+  requestFingerprint String?
+  metadata           Json?
+  occurredAt         DateTime      @default(now())
+  createdAt          DateTime      @default(now())
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lead      Lead             @relation(fields: [leadId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  actor     WorkspaceMember? @relation("LeadEventActor", fields: [actorMemberId, actorWorkspaceId], references: [id, workspaceId], onDelete: SetNull)
+
+  @@unique([workspaceId, sourceEventKey])
+  @@index([workspaceId, leadId, occurredAt])
+  @@index([workspaceId, type, occurredAt])
+}
+
+model Sale {
+  id             String     @id @default(cuid())
+  workspaceId    String
+  leadId         String
+  status         SaleStatus @default(CONFIRMED)
+  amountCents    Int
+  currency       String     @db.Char(3)
+  source         SaleSource @default(MANUAL)
+  confirmedAt    DateTime
+  voidedAt       DateTime?
+  idempotencyKey String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lead      Lead      @relation(fields: [leadId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+
+  @@unique([workspaceId, idempotencyKey])
+  @@index([workspaceId, status, confirmedAt])
+  @@index([workspaceId, leadId])
 }
 
 model DmLog {
-  id                 String     @id @default(cuid())
+  id                 String @id @default(cuid())
   workspaceId        String
   automationId       String
   instagramAccountId String
 
-  commenterId   String
-  commenterName String?
-  commentText   String
-  commentId     String
+  commenterId    String
+  commenterName  String?
+  commentText    String
+  commentId      String
   matchedKeyword String?
-  status        DmStatus @default(PENDING)
-  attempts      Int      @default(0)
-  dmSentAt      DateTime?
-  errorMessage  String?
+  status         DmStatus  @default(PENDING)
+  attempts       Int       @default(0)
+  dmSentAt       DateTime?
+  errorMessage   String?
 
   // The public comment reply is delivered independently of the DM, so its
   // outcome is tracked separately. publicReplySentAt makes it idempotent across
@@ -374,14 +461,14 @@ model LinkClick {
 }
 
 model WebhookEvent {
-  id          String        @id @default(cuid())
-  workspaceId String?
-  object      String?
-  payload     Json
-  status      WebhookStatus @default(PENDING)
+  id           String        @id @default(cuid())
+  workspaceId  String?
+  object       String?
+  payload      Json
+  status       WebhookStatus @default(PENDING)
   errorMessage String?
-  createdAt   DateTime      @default(now())
-  processedAt DateTime?
+  createdAt    DateTime      @default(now())
+  processedAt  DateTime?
 
   workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
 
@@ -390,13 +477,13 @@ model WebhookEvent {
 }
 
 model OperationalEvent {
-  id          String                @id @default(cuid())
+  id          String                 @id @default(cuid())
   workspaceId String?
   source      OperationalEventSource
-  level       OperationalEventLevel @default(INFO)
+  level       OperationalEventLevel  @default(INFO)
   message     String
   payload     Json?
-  createdAt   DateTime              @default(now())
+  createdAt   DateTime               @default(now())
   resolvedAt  DateTime?
 
   workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
@@ -438,6 +525,54 @@ enum LeadStatus {
   NEGOCIANDO
   GANHO
   PERDIDO
+}
+
+enum LeadOriginType {
+  COMMENT
+  DIRECT_MESSAGE
+  MANUAL
+}
+
+enum LeadIntentCategory {
+  PRICE
+  LINK
+  PURCHASE
+  QUESTION
+  OBJECTION
+  COMPARISON
+  URGENCY
+  STRONG_INTEREST
+  SUPPORT
+  NO_COMMERCIAL_INTENT
+  UNKNOWN
+}
+
+enum LeadIntentSource {
+  RULE
+  HUMAN
+  AI
+}
+
+enum LeadEventType {
+  OBSERVED_COMMENT
+  OBSERVED_DM
+  STATUS_CHANGED
+  ASSIGNEE_CHANGED
+  COMMERCIAL_FIELDS_UPDATED
+  INTENT_CLASSIFIED
+  INTENT_CORRECTED
+  SALE_CONFIRMED
+  SALE_VOIDED
+}
+
+enum SaleStatus {
+  CONFIRMED
+  VOIDED
+}
+
+enum SaleSource {
+  MANUAL
+  API
 }
 
 enum DmStatus {
