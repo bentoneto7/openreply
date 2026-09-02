@@ -55,6 +55,7 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [instagramError, setInstagramError] = useState<string | null>(null);
   const [memberError, setMemberError] = useState<string | null>(null);
   const [memberNotice, setMemberNotice] = useState<string | null>(null);
 
@@ -81,13 +82,29 @@ export default function SettingsPage() {
       return;
     }
 
+    setInstagramError(null);
     setBusy(`disconnect:${instagramAccountId}`);
-    await fetch("/api/instagram/disconnect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ instagramAccountId }),
-    });
-    window.location.reload();
+    try {
+      const response = await fetch("/api/instagram/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instagramAccountId }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        throw new Error(
+          payload?.error ?? "Não foi possível desconectar esta conta do Instagram."
+        );
+      }
+      window.location.reload();
+    } catch (disconnectError) {
+      setInstagramError(
+        disconnectError instanceof Error
+          ? disconnectError.message
+          : "Não foi possível desconectar esta conta do Instagram."
+      );
+      setBusy(null);
+    }
   }
 
   async function inviteMember(event: React.FormEvent) {
@@ -106,7 +123,7 @@ export default function SettingsPage() {
       setInviteEmail("");
       setMemberNotice(payload.warning ?? (payload.existingMember ? "A pessoa já tinha uma conta e foi adicionada à equipe." : "Convite enviado por e-mail com sucesso."));
     } else {
-      setMemberError(payload.error ?? "Could not invite member");
+      setMemberError(payload.error ?? "Não foi possível convidar a pessoa");
     }
     setBusy(null);
   }
@@ -142,6 +159,15 @@ export default function SettingsPage() {
 
       <section className="panel rounded p-4 sm:p-6">
         <h2 className="text-base font-semibold mb-6">Conexão com o Instagram</h2>
+
+        {instagramError && (
+          <div
+            role="alert"
+            className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-error"
+          >
+            {instagramError}
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
@@ -249,7 +275,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">Team</h2>
+        <h2 className="text-base font-semibold mb-6">Equipe</h2>
         <div className="space-y-3">
           {membersData?.members.map((member) => (
             <div
@@ -258,12 +284,12 @@ export default function SettingsPage() {
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">
-                  {member.user.name ?? member.user.email ?? "Unknown member"}
+                  {member.user.name ?? member.user.email ?? "Pessoa sem nome"}
                 </p>
                 <p className="text-xs text-muted">{member.user.email}</p>
               </div>
               <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted">
-                {member.role}
+                {member.role === "OWNER" ? "Proprietário" : member.role === "ADMIN" ? "Administrador" : "Membro"}
               </span>
             </div>
           ))}
@@ -272,7 +298,7 @@ export default function SettingsPage() {
         {membersData?.invitations.length ? (
           <div className="mt-6 border-t border-border pt-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Pending invites
+              Convites pendentes
             </p>
             <div className="space-y-3">
               {membersData.invitations.map((invitation) => (
@@ -296,7 +322,7 @@ export default function SettingsPage() {
                       }
                       className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-border-hover hover:text-foreground"
                     >
-                      Copy
+                      Copiar
                     </button>
                     <button
                       type="button"
@@ -304,7 +330,7 @@ export default function SettingsPage() {
                       disabled={busy === `invite:${invitation.id}`}
                       className="rounded-lg border border-error/20 px-3 py-1.5 text-xs font-medium text-error transition-colors hover:bg-error/10 disabled:opacity-50"
                     >
-                      Revoke
+                      Revogar
                     </button>
                   </div>
                 </div>
@@ -322,7 +348,7 @@ export default function SettingsPage() {
               type="email"
               value={inviteEmail}
               onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="teammate@agency.com"
+              placeholder="pessoa@empresa.com"
               className="rounded border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
               required
             />
@@ -333,15 +359,15 @@ export default function SettingsPage() {
               }
               className="rounded border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
             >
-              <option value="MEMBER">Member</option>
-              <option value="ADMIN">Admin</option>
+              <option value="MEMBER">Membro</option>
+              <option value="ADMIN">Administrador</option>
             </select>
             <button
               type="submit"
               disabled={busy === "invite"}
               className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
-              {busy === "invite" ? "Inviting..." : "Invite"}
+              {busy === "invite" ? "Convidando..." : "Convidar"}
             </button>
             {memberError && (
               <p className="sm:col-span-3 text-sm text-error">{memberError}</p>
@@ -354,14 +380,14 @@ export default function SettingsPage() {
       </section>
 
       <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">Usage</h2>
+        <h2 className="text-base font-semibold mb-6">Uso</h2>
         <div className="flex items-center justify-between gap-3 py-3">
           <div>
             <p className="text-sm font-medium text-foreground">
-              DMs sent this month
+              DMs enviadas neste mês
             </p>
             <p className="text-xs text-muted mt-0.5">
-              Self-hosted — no plan limits.
+              Instalação própria — sem limite contratual do plano.
             </p>
           </div>
           <span className="text-sm font-semibold text-foreground">
