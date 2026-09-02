@@ -17,9 +17,11 @@ import {
   HeartHandshake,
   LayoutDashboard,
   ListChecks,
+  LogOut,
   Settings,
   Stethoscope,
 } from "lucide-react";
+import { logoutAction } from "@/app/actions/auth";
 
 const navItems = [
   { label: "Central de vendas", href: "/dashboard", icon: LayoutDashboard },
@@ -97,9 +99,21 @@ export default function Sidebar({
           })}
         </nav>
 
-        <div className="px-5 py-4 border-t border-border">
-          <p className="text-sm text-foreground truncate">{workspaceName}</p>
-          <p className="text-xs text-muted">Comentários que viram conversas</p>
+        <div className="border-t border-border px-3 py-3">
+          <div className="px-2 pb-3">
+            <p className="truncate text-sm text-foreground">{workspaceName}</p>
+            <p className="text-xs text-muted">Comentários que viram conversas</p>
+          </div>
+
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            >
+              <LogOut aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={1.75} />
+              Sair da conta
+            </button>
+          </form>
         </div>
       </aside>
     </>
