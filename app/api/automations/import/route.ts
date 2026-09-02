@@ -19,7 +19,7 @@ const campaignSchema = z.object({
   publicReplyMessage: z.string().max(1000).optional().nullable(),
   trackedUrl: z.string().optional().nullable(),
   wholeWordMatch: z.boolean().optional().default(true),
-  isActive: z.boolean().optional().default(true),
+  isActive: z.boolean().optional().default(false),
 });
 
 const importSchema = z.object({
@@ -98,7 +98,10 @@ export async function POST(request: NextRequest) {
         dmMessage: campaign.dmMessage.slice(0, 1000),
         publicReplyEnabled: Boolean(publicReply),
         publicReplyMessage: publicReply ? publicReply.slice(0, 1000) : null,
-        isActive: campaign.isActive,
+        // Imports are drafts too. A CSV or copied payload must never activate
+        // outbound automation without a separate, explicit review action.
+        isActive: false,
+        reportShareEnabled: false,
         wholeWordMatch: campaign.wholeWordMatch,
         workspaceId: context.workspaceId,
         instagramAccountId: account.id,

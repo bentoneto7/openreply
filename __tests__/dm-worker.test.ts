@@ -528,6 +528,23 @@ describe("DM Worker — Full Pipeline", () => {
     expect(mockPrisma.dmLog.create).not.toHaveBeenCalled();
   });
 
+  it("does not retry a comment after Meta accepted it but SENT persistence failed", async () => {
+    mockPrisma.dmLog.update.mockRejectedValueOnce(
+      new Error("database unavailable after send")
+    );
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    const processor = getProcessor();
+    await expect(processor(createMockJob())).resolves.toBeUndefined();
+
+    expect(mockSendPrivateReply).toHaveBeenCalledOnce();
+    expect(mockReleaseWorkspaceDMReservation).not.toHaveBeenCalled();
+    expect(mockPrisma.dmLog.update).toHaveBeenCalledOnce();
+    consoleError.mockRestore();
+  });
+
   it("should use 'there' when commenter name is not available", async () => {
     const processor = getProcessor();
     const jobDataWithoutName = {
@@ -854,6 +871,52 @@ describe("DM Worker — Full Pipeline", () => {
       })
     );
   });
+
+  it("does not turn a delivered postback into FAILED when follow-up scheduling fails", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    mockPrisma.automation.findFirst.mockResolvedValue({
+      ...mockAutomation,
+      trackedLinks: [],
+      followUpEnabled: true,
+      followUpMessage: "Thanks",
+      followUpDelayMinutes: 5,
+    });
+    mockQueueAdd.mockRejectedValueOnce(new Error("Redis unavailable"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const processor = getProcessor();
+    await expect(processor(createMockPostbackJob())).resolves.toBeUndefined();
+
+    expect(mockSendDirectMessage).toHaveBeenCalledOnce();
+    expect(mockPrisma.dmLog.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: expect.objectContaining({ status: "SENT" }) })
+    );
+    expect(mockReleaseWorkspaceDMReservation).not.toHaveBeenCalled();
+    expect(
+      mockPrisma.dmLog.upsert.mock.calls.some(
+        ([args]) => args.update?.status === "FAILED"
+      )
+    ).toBe(false);
+    consoleError.mockRestore();
+  });
+
+  it("does not retry a postback after Meta accepted it but SENT persistence failed", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    mockPrisma.automation.findFirst.mockResolvedValue({
+      ...mockAutomation,
+      trackedLinks: [],
+    });
+    mockPrisma.dmLog.upsert.mockRejectedValueOnce(new Error("database unavailable"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const processor = getProcessor();
+    await expect(processor(createMockPostbackJob())).resolves.toBeUndefined();
+
+    expect(mockSendDirectMessage).toHaveBeenCalledOnce();
+    expect(mockReleaseWorkspaceDMReservation).not.toHaveBeenCalled();
+    expect(mockPrisma.dmLog.upsert).toHaveBeenCalledOnce();
+    consoleError.mockRestore();
+  });
 });
 
 describe("DM Worker — one private reply per comment", () => {
@@ -933,6 +996,25 @@ describe("DM Worker — one private reply per comment", () => {
         data: expect.objectContaining({ status: "SENT" }),
       })
     );
+  });
+
+  it("does not attempt a fallback after an ambiguous template timeout", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([
+      {
+        ...mockAutomation,
+        trackedLinks: [
+          { slug: "abc123", label: null, destinationUrl: "https://example.com" },
+        ],
+      },
+    ]);
+    mockSendPrivateReplyWithLinkButton.mockRejectedValue(
+      new Error("socket timeout waiting for Meta")
+    );
+
+    const processor = getProcessor();
+    await expect(processor(createMockJob())).rejects.toThrow("socket timeout");
+
+    expect(mockSendPrivateReply).not.toHaveBeenCalled();
   });
 });
 
@@ -1133,5 +1215,28 @@ describe("DM Worker — DM keyword trigger", () => {
         create: expect.objectContaining({ status: "FAILED" }),
       })
     );
+  });
+
+  it("keeps a trigger SENT when only follow-up scheduling fails", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([
+      {
+        ...dmTriggerAutomation,
+        followUpEnabled: true,
+        followUpMessage: "Thanks",
+        followUpDelayMinutes: 5,
+      },
+    ]);
+    mockQueueAdd.mockRejectedValueOnce(new Error("Redis unavailable"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const processor = getProcessor();
+    await expect(processor(createMockMessageJob())).resolves.toBeUndefined();
+
+    expect(mockSendDirectMessage).toHaveBeenCalledOnce();
+    expect(mockPrisma.dmLog.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: expect.objectContaining({ status: "SENT" }) })
+    );
+    expect(mockReleaseWorkspaceDMReservation).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });

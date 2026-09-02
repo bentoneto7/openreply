@@ -52,15 +52,14 @@ function formatError(error: unknown): string {
   return "Unknown error";
 }
 
-// Meta rejections that a plain-text retry cannot fix: the send was refused for
-// the conversation, not for the button template. Retrying as text just burns
-// the attempt and — worse — overwrites the real error with a misleading one
-// ("invalid for a private reply", because the first attempt already used up the
-// comment's single allowed private reply).
-const NON_TEMPLATE_REJECTIONS = [
-  /outside of allowed window/i,
-  /invalid for a private reply/i,
-  /requested user cannot be found/i,
+// Fail closed: a timeout or unknown Meta error may mean the template was
+// accepted even though its response never reached us. A plain-text fallback is
+// safe only when Meta explicitly says the template/buttons are unsupported.
+const EXPLICIT_TEMPLATE_REJECTIONS = [
+  /unsupported (message )?template/i,
+  /template(?:_type)?[^.]* (?:is )?(?:invalid|unsupported|not supported)/i,
+  /(?:invalid|unsupported|not supported)[^.]*template/i,
+  /buttons?[^.]* (?:is |are )?(?:invalid|unsupported|not supported)/i,
 ];
 
 function isTemplateRejection(error: unknown): boolean {
@@ -68,7 +67,7 @@ function isTemplateRejection(error: unknown): boolean {
     return false;
   }
   const message = error instanceof Error ? error.message : "";
-  return !NON_TEMPLATE_REJECTIONS.some((pattern) => pattern.test(message));
+  return EXPLICIT_TEMPLATE_REJECTIONS.some((pattern) => pattern.test(message));
 }
 
 type WorkerTrackedLink = {
@@ -558,6 +557,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
       sendFollowPrompt = alreadyFollows !== true;
     }
 
+    let dmDelivered = false;
     try {
       if (useOpeningDm) {
         const openingText = renderMessageWithTracking({
@@ -654,6 +654,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
         );
       }
 
+      dmDelivered = true;
       await prisma.dmLog.update({
         where: {
           automationId_commentId: {
@@ -668,6 +669,18 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
         },
       });
     } catch (error) {
+      // Meta accepted the private reply before local persistence failed. Do not
+      // release quota, mark FAILED or let BullMQ retry an external side effect
+      // that may already have happened. A transactional outbox/provider-side
+      // reconciliation is still required to recover the missing SENT record.
+      if (dmDelivered) {
+        console.error(
+          "[DM Worker] Comment reply delivered but SENT persistence failed:",
+          formatError(error)
+        );
+        continue;
+      }
+
       await releaseWorkspaceDMReservation(
         automation.workspaceId,
         usage.periodStart
@@ -812,6 +825,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
     return;
   }
 
+  let revealDelivered = false;
   try {
     await sendRevealDirectMessage(
       accessToken,
@@ -820,27 +834,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
       commenterName,
       "postback"
     );
-    // Optional appreciation follow-up: once the link has been delivered, send a
-    // short thank-you. It is scheduled as its own delayed job so it can go out
-    // some minutes later (followUpDelayMinutes) rather than immediately. The
-    // deterministic job id dedupes repeat button taps to one follow-up per user.
-    if (automation.followUpEnabled && automation.followUpMessage?.trim()) {
-      const delayMs =
-        Math.max(0, automation.followUpDelayMinutes ?? 0) * 60_000;
-      await getDMQueue().add(
-        FOLLOWUP_JOB_NAME,
-        {
-          instagramAccountId: automation.instagramAccount.instagramId,
-          userId,
-          automationId: automation.id,
-          commenterName,
-        },
-        {
-          delay: delayMs,
-          jobId: `followup_${automation.id}_${userId}`,
-        }
-      );
-    }
+    revealDelivered = true;
     await prisma.dmLog.upsert({
       where: {
         automationId_commentId: { automationId: automation.id, commentId: dedupeId },
@@ -859,6 +853,17 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
       update: { status: "SENT", dmSentAt: new Date(), errorMessage: null },
     });
   } catch (error) {
+    // Meta already accepted the reveal. A database failure after that point is
+    // an observability failure, not a send failure: do not release quota, mark
+    // FAILED or throw into BullMQ, any of which would make a retry send twice.
+    if (revealDelivered) {
+      console.error(
+        "[DM Worker] Reveal delivered but SENT persistence failed:",
+        formatError(error)
+      );
+      return;
+    }
+
     await releaseWorkspaceDMReservation(automation.workspaceId, usage.periodStart);
 
     // The read fallback is speculative: it only runs when the user read the
@@ -894,6 +899,34 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
       update: { status: "FAILED", errorMessage: formatError(error) },
     });
     throw error;
+  }
+
+  // SENT is durable before this best-effort side effect. A Redis outage may
+  // lose the appreciation message, but can no longer turn the delivered reveal
+  // into FAILED or cause BullMQ to repeat it.
+  if (automation.followUpEnabled && automation.followUpMessage?.trim()) {
+    try {
+      const delayMs =
+        Math.max(0, automation.followUpDelayMinutes ?? 0) * 60_000;
+      await getDMQueue().add(
+        FOLLOWUP_JOB_NAME,
+        {
+          instagramAccountId: automation.instagramAccount.instagramId,
+          userId,
+          automationId: automation.id,
+          commenterName,
+        },
+        {
+          delay: delayMs,
+          jobId: `followup_${automation.id}_${userId}`,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "[DM Worker] Reveal delivered but follow-up scheduling failed:",
+        formatError(error)
+      );
+    }
   }
 }
 
@@ -1116,6 +1149,8 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
       continue;
     }
 
+    let messageDelivered = false;
+    let scheduleFollowUp = false;
     try {
       if (sendFollowPrompt) {
         const promptText = renderMessageWithoutLink({
@@ -1140,27 +1175,12 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
           commenterName,
           "message trigger"
         );
-
-        // The link has been delivered, so the appreciation follow-up applies
-        // here exactly as it does after a button tap. Not scheduled behind the
-        // follow prompt — no link went out yet in that branch.
-        if (automation.followUpEnabled && automation.followUpMessage?.trim()) {
-          await getDMQueue().add(
-            FOLLOWUP_JOB_NAME,
-            {
-              instagramAccountId: automation.instagramAccount.instagramId,
-              userId: senderId,
-              automationId: automation.id,
-              commenterName,
-            },
-            {
-              delay: Math.max(0, automation.followUpDelayMinutes ?? 0) * 60_000,
-              jobId: `followup_${automation.id}_${senderId}`,
-            }
-          );
-        }
+        scheduleFollowUp = Boolean(
+          automation.followUpEnabled && automation.followUpMessage?.trim()
+        );
       }
 
+      messageDelivered = true;
       await prisma.dmLog.upsert({
         where: {
           automationId_commentId: {
@@ -1181,6 +1201,17 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
         },
       });
     } catch (error) {
+      // The provider accepted the message before persistence failed. Retrying
+      // this BullMQ job would send the same inbound trigger twice, so preserve
+      // the consumed quota and report an observability failure only.
+      if (messageDelivered) {
+        console.error(
+          "[DM Worker] Trigger reply delivered but SENT persistence failed:",
+          formatError(error)
+        );
+        continue;
+      }
+
       await releaseWorkspaceDMReservation(
         automation.workspaceId,
         usage.periodStart
@@ -1206,6 +1237,32 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
         },
       });
       throw error;
+    }
+
+    // Schedule only after SENT is durable, and never convert a Redis failure
+    // into a delivery failure. The deterministic job id still dedupes repeated
+    // scheduling attempts.
+    if (scheduleFollowUp) {
+      try {
+        await getDMQueue().add(
+          FOLLOWUP_JOB_NAME,
+          {
+            instagramAccountId: automation.instagramAccount.instagramId,
+            userId: senderId,
+            automationId: automation.id,
+            commenterName,
+          },
+          {
+            delay: Math.max(0, automation.followUpDelayMinutes ?? 0) * 60_000,
+            jobId: `followup_${automation.id}_${senderId}`,
+          }
+        );
+      } catch (error) {
+        console.error(
+          "[DM Worker] Trigger reply delivered but follow-up scheduling failed:",
+          formatError(error)
+        );
+      }
     }
   }
 }

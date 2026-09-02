@@ -7,6 +7,10 @@ import { buildTrackedUrl } from "@/lib/tracking/message";
 import { generateTrackedLinkSlug } from "@/lib/tracking/server";
 import { buildReportUrl, generateReportShareSlug } from "@/lib/reports/share";
 import {
+  getCampaignActivationIssue,
+  getCampaignLinkIssue,
+} from "@/lib/campaign-activation";
+import {
   canManageWorkspace,
   getCurrentWorkspaceContext,
 } from "@/lib/workspace-access";
@@ -58,7 +62,7 @@ const createAutomationSchema = z
       .optional()
       .nullable(),
     secondaryButtonLabel: z.string().max(20).optional().nullable(),
-    isActive: z.boolean().optional().default(true),
+    isActive: z.boolean().optional().default(false),
     wholeWordMatch: z.boolean().optional().default(true),
   })
   // A campaign must target a specific post, any post, or the next reel.
@@ -105,6 +109,7 @@ const updateAutomationSchema = z.object({
   publicReplyMessage: z.string().max(1000).optional().nullable(),
   publicReplyMessages: z.array(z.string().max(1000)).max(10).optional(),
   isActive: z.boolean().optional(),
+  activationConfirmed: z.literal(true).optional(),
   wholeWordMatch: z.boolean().optional(),
   reportShareEnabled: z.boolean().optional(),
   // Empty string clears the tracked link; a URL updates/creates it; undefined
@@ -307,6 +312,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const linkIssue = getCampaignLinkIssue({
+    dmMessage: parsed.data.dmMessage,
+    primaryUrl: parsed.data.trackedDestinationUrl ?? "",
+    secondaryLinkEnabled: Boolean(parsed.data.secondaryDestinationUrl),
+    secondaryUrl: parsed.data.secondaryDestinationUrl ?? "",
+  });
+  if (linkIssue) {
+    return NextResponse.json(
+      { success: false, error: linkIssue, code: "CAMPAIGN_LINK_INVALID" },
+      { status: 400 }
+    );
+  }
+
   const requestedInstagramAccountId =
     parsed.data.instagramAccountId && parsed.data.instagramAccountId !== "all"
       ? parsed.data.instagramAccountId
@@ -425,7 +443,10 @@ export async function POST(request: NextRequest) {
       publicReplyMessage: parsed.data.publicReplyEnabled
         ? publicReplyList[0] ?? parsed.data.publicReplyMessage ?? null
         : null,
-      isActive: parsed.data.isActive,
+      // Campaign creation is always a draft. Activation is a separate,
+      // explicit PATCH after the operator reviews the safety checklist.
+      isActive: false,
+      reportShareEnabled: false,
       wholeWordMatch: parsed.data.wholeWordMatch,
       workspaceId,
       instagramAccountId: instagramAccount.id,
@@ -487,6 +508,12 @@ export async function PATCH(request: NextRequest) {
 
   const existing = await prisma.automation.findFirst({
     where: { id: automationId, workspaceId },
+    include: {
+      trackedLinks: {
+        select: { id: true, destinationUrl: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
 
   if (!existing) {
@@ -500,8 +527,87 @@ export async function PATCH(request: NextRequest) {
     trackedDestinationUrl,
     secondaryDestinationUrl,
     secondaryButtonLabel,
+    activationConfirmed,
     ...automationData
   } = parsed.data;
+
+  const primaryUrl =
+    trackedDestinationUrl === undefined || trackedDestinationUrl === null
+      ? existing.trackedLinks[0]?.destinationUrl ?? ""
+      : trackedDestinationUrl;
+  const secondaryUrl =
+    secondaryDestinationUrl === undefined || secondaryDestinationUrl === null
+      ? existing.trackedLinks[1]?.destinationUrl ?? ""
+      : secondaryDestinationUrl;
+  const linkConfigurationChanged =
+    automationData.dmMessage !== undefined ||
+    trackedDestinationUrl !== undefined ||
+    secondaryDestinationUrl !== undefined ||
+    automationData.isActive === true;
+
+  if (linkConfigurationChanged) {
+    const linkIssue = getCampaignLinkIssue({
+      dmMessage: automationData.dmMessage ?? existing.dmMessage,
+      primaryUrl,
+      secondaryLinkEnabled: Boolean(secondaryUrl),
+      secondaryUrl,
+    });
+    if (linkIssue) {
+      return NextResponse.json(
+        { success: false, error: linkIssue, code: "CAMPAIGN_LINK_INVALID" },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (automationData.isActive === true) {
+    if (!activationConfirmed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "A ativação exige confirmação explícita do operador",
+          code: "ACTIVATION_CONFIRMATION_REQUIRED",
+        },
+        { status: 400 }
+      );
+    }
+
+    const value = <K extends keyof typeof automationData>(key: K) =>
+      automationData[key] === undefined ? existing[key] : automationData[key];
+    const matchAnyPost = value("matchAnyPost");
+    const pendingNextReel = value("pendingNextReel");
+    const postId = value("postId");
+    const matchAnyWord = value("matchAnyWord");
+    const keywords = value("keywords") ?? [];
+    const publicReplyMessages =
+      value("publicReplyMessages") ??
+      (value("publicReplyMessage") ? [value("publicReplyMessage") as string] : []);
+    const activationIssue = getCampaignActivationIssue({
+      hasTarget: Boolean(matchAnyPost || pendingNextReel || postId),
+      hasTrigger: Boolean(matchAnyWord || keywords.length > 0),
+      dmMessage: value("dmMessage") ?? "",
+      hasTrackedLink: Boolean(primaryUrl),
+      openingDmEnabled: value("openingDmEnabled") ?? false,
+      openingDmMessage: value("openingDmMessage") ?? null,
+      openingDmButtonLabel: value("openingDmButtonLabel") ?? null,
+      publicReplyEnabled: value("publicReplyEnabled") ?? false,
+      publicReplyMessages,
+      requireFollow: value("requireFollow") ?? false,
+      followPromptMessage: value("followPromptMessage") ?? null,
+      followUpEnabled: value("followUpEnabled") ?? false,
+      followUpMessage: value("followUpMessage") ?? null,
+    });
+    if (activationIssue) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: activationIssue,
+          code: "CAMPAIGN_NOT_READY",
+        },
+        { status: 400 }
+      );
+    }
+  }
 
   // Keep dependent fields consistent: any-word clears keywords; a disabled
   // opening DM clears its message and button.
@@ -644,7 +750,31 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  await prisma.automation.delete({ where: { id: automationId } });
+  // A campaign can be the first-touch source of opportunities and confirmed
+  // sales. Deleting it after activity would erase delivery/click records and
+  // null that attribution, so only a campaign with no persisted activity can
+  // be removed. Relation predicates keep the check and delete atomic.
+  const deleted = await prisma.automation.deleteMany({
+    where: {
+      id: automationId,
+      workspaceId,
+      dmLogs: { none: {} },
+      linkClicks: { none: {} },
+      sourcedLeads: { none: {} },
+    },
+  });
+
+  if (deleted.count !== 1) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Esta campanha possui histórico operacional ou comercial. A exclusão foi bloqueada para preservar entregas, oportunidades e atribuição; pause a campanha para interromper novos envios.",
+        code: "CAMPAIGN_HISTORY_REQUIRES_RETENTION",
+      },
+      { status: 409 }
+    );
+  }
 
   return NextResponse.json({ success: true, data: { deleted: true } });
 }
