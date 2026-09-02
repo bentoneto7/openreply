@@ -327,7 +327,7 @@ export default function CampaignsPage() {
             {filtered.length !== automations.length
               ? ` de ${automations.length}`
               : ""}{" "}
-            automação{automations.length !== 1 ? "ões" : ""}
+            {automations.length === 1 ? "automação" : "automações"}
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
