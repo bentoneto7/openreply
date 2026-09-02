@@ -2,22 +2,22 @@
 
 # Comentou
 
-Open-sourced ManyChat for Instagram comment-to-DM automation.
+Sistema comercial do Instagram: da intenção no comentário à venda acompanhável.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![Built with Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org)
 
 </div>
 
-Someone comments `LINK` on your reel, and they get a DM with your link a second later. That is the whole idea. Comentou watches the comments on your Instagram posts, and when a comment matches a keyword you set, it sends that person a private reply through the official Meta API. You can also post a public reply under the comment at the same time.
+Comentou transforma intenção no Instagram em vendas acompanháveis. O produto observa comentários e mensagens compatíveis, inicia a experiência configurada pela API oficial da Meta, identifica a oportunidade e entrega contexto para o atendimento humano conduzir o próximo passo.
 
-ManyChat does this and charges a monthly fee. Comentou is the same core feature, free, running on your own infrastructure, with no seat limits and no plan caps.
+> O comentário chegou. A oportunidade não espera.
 
-> If this saves you a subscription or a weekend of building, a star on the repo genuinely helps other people find it.
+Comentário, DM, clique, oportunidade e venda são eventos diferentes. Receita só aparece quando uma venda é registrada como confirmada; clique nunca é tratado como compra.
 
 ## Why this exists
 
-Comment-to-DM is one feature, but every tool that offers it wants a recurring subscription for it. The actual work is a webhook, a keyword match, and one API call to Meta. That does not need to cost anything to run for a single account.
+Uma resposta rápida abre a conversa, mas a operação comercial precisa continuar: entender a origem, priorizar intenção, atribuir responsável, registrar próxima ação e acompanhar ganho ou perda. Comentou reúne essa jornada sem prometer que automação, sozinha, vende.
 
 Comentou is built around Meta's official Instagram private replies. It does not scrape, it does not automate a browser, and it never asks for an Instagram password. That keeps your account inside Meta's rules, which matters if you care about not getting flagged.
 
@@ -34,6 +34,11 @@ Comentou is built around Meta's official Instagram private replies. It does not 
 - Workspaces and roles. Owner, admin, and member roles with invite links, useful if you run this for clients.
 - Campaign templates. Start from a preset instead of a blank form.
 - Inbox. Read your Instagram DM conversations and reply from the dashboard, inside Meta's 24-hour messaging window. Cached so it loads instantly on repeat visits.
+- Commercial pipeline. Track `NOVO`, `ABORDADO`, `RESPONDEU`, `NEGOCIANDO`, `GANHO`, and `PERDIDO` with origin, assignee, offer, value, next action, and auditable transitions.
+- Explainable intent. Deterministic signals classify price, purchase, urgency, objection, support, and other intent categories, with human correction preserved.
+- Human-approved copilot. Local fallback summarizes context and prepares short, consultative, and direct drafts without sending them automatically.
+- Confirmed results. Opportunities, wins, conversion, and revenue keep measured zero separate from unavailable data; revenue comes only from persisted confirmed sales.
+- Operational health. Technical failures stay separate from commercial follow-ups, stalled negotiations, and unassigned opportunities.
 - DM logs. Every send, skip, and failure is logged with a reason.
 - Self-comment filtering. Your own comments never trigger a reply, since Meta rejects DMing yourself anyway.
 
@@ -43,9 +48,11 @@ Comentou is built around Meta's official Instagram private replies. It does not 
 2. Meta sends a webhook to your Comentou instance.
 3. Comentou checks the comment against your active campaigns.
 4. On a keyword match, it queues a job.
-5. A background worker sends the private reply, and the public reply if you enabled one.
+5. A background worker sends the configured reply, while retries and rate limits protect delivery.
+6. The matching person becomes a persisted opportunity with source and intent signals.
+7. A human reviews the conversation, assigns ownership, records next actions, and confirms a sale or loss when it actually happens.
 
-The web app receives the webhook and serves the dashboard. A separate worker process does the sending, because the send has to survive rate limits and retries. Both talk to the same Postgres and Redis.
+The web app receives the webhook and serves the commercial workspace. A separate worker process handles automated delivery because sends must survive rate limits and retries. Both use the same Postgres and Redis, and all private records are scoped by workspace.
 
 ## Quick start
 
