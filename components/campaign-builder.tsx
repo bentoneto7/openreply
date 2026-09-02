@@ -14,6 +14,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import PostPicker from "@/components/post-picker";
 import CampaignPreview, { type PreviewTab } from "@/components/campaign-preview";
@@ -26,6 +27,14 @@ import {
 
 type TriggerScope = "specific" | "any" | "next";
 type MatchMode = "specific" | "any";
+type FunnelStep = 0 | 1 | 2 | 3;
+
+const FUNNEL_STEPS = [
+  { title: "Publicação", description: "Onde começa" },
+  { title: "Gatilho", description: "Quem entra" },
+  { title: "Abordagem", description: "Primeiro contato" },
+  { title: "Entrega", description: "Mensagem e link" },
+] as const;
 
 interface LoadedCampaign {
   id: string;
@@ -182,6 +191,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   const [followUpDelayMinutes, setFollowUpDelayMinutes] = useState(0);
 
   const [previewTab, setPreviewTab] = useState<PreviewTab>("dm");
+  const [currentStep, setCurrentStep] = useState<FunnelStep>(0);
 
   // CSV import queue. When present, each save advances to the next row instead
   // of returning to the campaigns list.
@@ -386,14 +396,26 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   async function handleSubmit(activeValue: boolean) {
     setError(null);
 
-    if (!selectedAccountId) return setError("Conecte uma conta do Instagram primeiro.");
-    if (triggerScope === "specific" && !postId)
+    if (!selectedAccountId) {
+      setCurrentStep(0);
+      return setError("Conecte uma conta do Instagram primeiro.");
+    }
+    if (triggerScope === "specific" && !postId) {
+      setCurrentStep(0);
       return setError("Escolha uma publicação ou reel para acionar a automação.");
-    if (matchMode === "specific" && keywords.length === 0)
+    }
+    if (matchMode === "specific" && keywords.length === 0) {
+      setCurrentStep(1);
       return setError("Adicione pelo menos uma palavra-chave ou selecione qualquer palavra.");
-    if (!dmMessage.trim()) return setError("Adicione a DM com o link.");
-    if (openingDmEnabled && (!openingDmMessage.trim() || !openingDmButtonLabel.trim()))
+    }
+    if (openingDmEnabled && (!openingDmMessage.trim() || !openingDmButtonLabel.trim())) {
+      setCurrentStep(2);
       return setError("A DM inicial precisa de uma mensagem e do texto do botão.");
+    }
+    if (!dmMessage.trim()) {
+      setCurrentStep(3);
+      return setError("Adicione a DM com o link.");
+    }
 
     setSaving(true);
 
@@ -626,15 +648,90 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[300px_1fr] lg:gap-8">
+      <div className="panel overflow-hidden rounded-xl p-2 sm:p-3">
+        <div
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+          role="tablist"
+          aria-label="Etapas do funil de automação"
+        >
+          {FUNNEL_STEPS.map((step, index) => {
+            const isCurrent = currentStep === index;
+            const isComplete = currentStep > index;
+            return (
+              <button
+                key={step.title}
+                type="button"
+                role="tab"
+                aria-selected={isCurrent}
+                onClick={() => setCurrentStep(index as FunnelStep)}
+                className={`relative flex min-w-0 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+                  isCurrent
+                    ? "bg-accent text-white"
+                    : "text-muted hover:bg-surface-hover hover:text-foreground"
+                }`}
+              >
+                <span
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                    isCurrent
+                      ? "bg-white text-accent"
+                      : isComplete
+                        ? "bg-success/15 text-success"
+                        : "bg-zinc-100 text-muted"
+                  }`}
+                >
+                  {isComplete ? <Check className="h-4 w-4" /> : index + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">
+                    {step.title}
+                  </span>
+                  <span
+                    className={`hidden truncate text-xs sm:block ${
+                      isCurrent ? "text-blue-100" : "text-muted"
+                    }`}
+                  >
+                    {step.description}
+                  </span>
+                </span>
+                {index < FUNNEL_STEPS.length - 1 && (
+                  <ChevronRight
+                    className={`absolute -right-3 top-1/2 z-10 hidden h-4 w-4 -translate-y-1/2 sm:block ${
+                      isCurrent ? "text-accent" : "text-border-hover"
+                    }`}
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,560px)_1fr] lg:gap-8">
       {/* Left: controls */}
-      <div className="space-y-8">
+      <div className="panel rounded-xl p-4 sm:p-6">
         {error && (
-          <div className="rounded border border-error/20 bg-error/10 p-3 text-sm text-error">
+          <div className="mb-5 rounded border border-error/20 bg-error/10 p-3 text-sm text-error">
             {error}
           </div>
         )}
 
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">
+            Etapa {currentStep + 1} de {FUNNEL_STEPS.length}
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-foreground">
+            {FUNNEL_STEPS[currentStep].title}
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            {currentStep === 0 && "Escolha a conta e a publicação que inicia o fluxo."}
+            {currentStep === 1 && "Defina o comentário que coloca a pessoa no funil."}
+            {currentStep === 2 && "Configure como a conversa começa no Instagram."}
+            {currentStep === 3 && "Entregue o conteúdo e conclua a automação."}
+          </p>
+        </div>
+
+        {currentStep === 0 && <div className="space-y-8">
         <div className="space-y-3">
           <label className="text-sm font-semibold text-foreground">
             Nome da automação{" "}
@@ -695,8 +792,9 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             a próxima publicação ou reel
           </Radio>
         </Section>
+        </div>}
 
-        <Section title="E o comentário contiver">
+        {currentStep === 1 && <Section title="E o comentário contiver">
           <Radio
             checked={matchMode === "specific"}
             onSelect={() => setMatchMode("specific")}
@@ -794,9 +892,9 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               </p>
             </div>
           )}
-        </Section>
+        </Section>}
 
-        <Section title="A pessoa receberá">
+        {currentStep === 2 && <Section title="A pessoa receberá">
           <div className="rounded-lg border border-border p-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-foreground">uma DM inicial</span>
@@ -860,9 +958,9 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               </div>
             )}
           </div>
-        </Section>
+        </Section>}
 
-        <Section title="Depois, a pessoa receberá">
+        {currentStep === 3 && <Section title="Depois, a pessoa receberá">
           <div className="rounded-lg border border-border p-3 space-y-2">
             <span className="text-sm text-foreground">uma DM com o link</span>
             <textarea
@@ -976,7 +1074,42 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               </div>
             )}
           </div>
-        </Section>
+        </Section>}
+
+        <div className="mt-8 flex items-center justify-between border-t border-border pt-5">
+          <button
+            type="button"
+            onClick={() => setCurrentStep((currentStep - 1) as FunnelStep)}
+            disabled={currentStep === 0}
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted hover:text-foreground disabled:invisible"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            Voltar
+          </button>
+          {currentStep < FUNNEL_STEPS.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => setCurrentStep((currentStep + 1) as FunnelStep)}
+              className="inline-flex items-center gap-1 rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white hover:bg-accent-hover"
+            >
+              Próxima etapa
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleSubmit(mode === "new" ? true : isActive)}
+              disabled={saving}
+              className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving
+                ? "Salvando…"
+                : mode === "new"
+                  ? "Ativar automação"
+                  : "Salvar alterações"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Right: preview */}
