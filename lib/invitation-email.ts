@@ -34,8 +34,7 @@ export async function sendWorkspaceInvitationEmail(to: string, input: Invitation
     body: JSON.stringify({ from, to: [to], ...content }),
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    console.error("Resend invitation failed", response.status, detail.slice(0, 500));
+    console.error("Resend invitation failed", { status: response.status });
     throw new Error("INVITATION_EMAIL_FAILED");
   }
 }

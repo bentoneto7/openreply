@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/client";
 import type { Workspace, WorkspaceRole } from "@/app/generated/prisma/client";
+import { resolveInvitationRole } from "@/lib/workspace-invitations";
 
 function normalizeInviteEmail(email: string) {
   return email.trim().toLowerCase();
@@ -22,6 +23,20 @@ export async function acceptPendingInvitationsForUser(
   });
 
   for (const invitation of invitations) {
+    const existingMembership = await prisma.workspaceMember.findUnique({
+      where: {
+        workspaceId_userId: {
+          workspaceId: invitation.workspaceId,
+          userId,
+        },
+      },
+      select: { role: true },
+    });
+    const acceptedRole = resolveInvitationRole(
+      existingMembership?.role,
+      invitation.role
+    );
+
     await prisma.$transaction([
       prisma.workspaceMember.upsert({
         where: {
@@ -33,10 +48,10 @@ export async function acceptPendingInvitationsForUser(
         create: {
           workspaceId: invitation.workspaceId,
           userId,
-          role: invitation.role,
+          role: acceptedRole,
         },
         update: {
-          role: invitation.role,
+          role: acceptedRole,
         },
       }),
       prisma.workspaceInvitation.update({

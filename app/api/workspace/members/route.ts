@@ -12,6 +12,7 @@ import {
   canManageWorkspace,
   getCurrentWorkspaceContext,
 } from "@/lib/workspace-access";
+import { logServerError } from "@/lib/security/safe-error";
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -30,8 +31,9 @@ const deleteSchema = z.object({
 
 async function getMemberPayload(
   workspaceId: string,
-  currentUserRole?: "OWNER" | "ADMIN" | "MEMBER"
+  currentUserRole: "OWNER" | "ADMIN" | "MEMBER"
 ) {
+  const canManageMembers = canManageWorkspace(currentUserRole);
   const [members, invitations] = await Promise.all([
     prisma.workspaceMember.findMany({
       where: { workspaceId },
@@ -49,25 +51,31 @@ async function getMemberPayload(
         },
       },
     }),
-    prisma.workspaceInvitation.findMany({
-      where: { workspaceId, status: "PENDING" },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        token: true,
-        expiresAt: true,
-        createdAt: true,
-      },
-    }),
+    canManageMembers
+      ? prisma.workspaceInvitation.findMany({
+          where: { workspaceId, status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            token: true,
+            expiresAt: true,
+            createdAt: true,
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   return {
-    ...(currentUserRole ? { currentUserRole } : {}),
+    currentUserRole,
     members,
     invitations: invitations.map((invitation) => ({
-      ...invitation,
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      expiresAt: invitation.expiresAt,
+      createdAt: invitation.createdAt,
       inviteUrl: buildInvitationUrl(invitation.token),
     })),
   };
@@ -77,30 +85,33 @@ export async function GET() {
   const context = await getCurrentWorkspaceContext();
   if (!context) {
     return NextResponse.json(
-      { success: false, error: "Unauthorized" },
+      { success: false, error: "Não autorizado" },
       { status: 401 }
     );
   }
 
-  return NextResponse.json({
-    success: true,
-    data: {
-      ...(await getMemberPayload(context.workspaceId, context.role)),
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        ...(await getMemberPayload(context.workspaceId, context.role)),
+      },
     },
-  });
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(request: NextRequest) {
   const context = await getCurrentWorkspaceContext();
   if (!context) {
     return NextResponse.json(
-      { success: false, error: "Unauthorized" },
+      { success: false, error: "Não autorizado" },
       { status: 401 }
     );
   }
   if (!canManageWorkspace(context.role)) {
     return NextResponse.json(
-      { success: false, error: "Only owners and admins can invite members" },
+      { success: false, error: "Apenas proprietários e administradores podem convidar pessoas" },
       { status: 403 }
     );
   }
@@ -109,7 +120,7 @@ export async function POST(request: NextRequest) {
   const parsed = inviteSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { success: false, error: "Invalid invitation", details: parsed.error.flatten() },
+      { success: false, error: "Convite inválido", details: parsed.error.flatten() },
       { status: 400 }
     );
   }
@@ -123,6 +134,22 @@ export async function POST(request: NextRequest) {
   let emailSent = false;
   let deliveryWarning: string | null = null;
   if (existingUser) {
+    const existingMembership = await prisma.workspaceMember.findUnique({
+      where: {
+        workspaceId_userId: {
+          workspaceId: context.workspaceId,
+          userId: existingUser.id,
+        },
+      },
+      select: { role: true },
+    });
+    if (existingMembership?.role === "OWNER") {
+      return NextResponse.json(
+        { success: false, error: "A função do proprietário não pode ser alterada por convite" },
+        { status: 409 }
+      );
+    }
+
     await prisma.workspaceMember.upsert({
       where: {
         workspaceId_userId: {
@@ -176,7 +203,7 @@ export async function POST(request: NextRequest) {
       });
       emailSent = true;
     } catch (error) {
-      console.error("Workspace invitation email was not sent", error instanceof Error ? error.message : error);
+      logServerError("Workspace invitation email was not sent", error);
       deliveryWarning = "Convite criado, mas o e-mail não pôde ser enviado. Copie o link pendente e envie manualmente.";
     }
   }
@@ -194,13 +221,13 @@ export async function PATCH(request: NextRequest) {
   const context = await getCurrentWorkspaceContext();
   if (!context) {
     return NextResponse.json(
-      { success: false, error: "Unauthorized" },
+      { success: false, error: "Não autorizado" },
       { status: 401 }
     );
   }
   if (!canManageWorkspace(context.role)) {
     return NextResponse.json(
-      { success: false, error: "Only owners and admins can update roles" },
+      { success: false, error: "Apenas proprietários e administradores podem alterar funções" },
       { status: 403 }
     );
   }
@@ -208,7 +235,7 @@ export async function PATCH(request: NextRequest) {
   const parsed = updateMemberSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json(
-      { success: false, error: "Invalid member update" },
+      { success: false, error: "Alteração de integrante inválida" },
       { status: 400 }
     );
   }
@@ -218,7 +245,7 @@ export async function PATCH(request: NextRequest) {
   });
   if (!member || member.role === "OWNER") {
     return NextResponse.json(
-      { success: false, error: "Member cannot be updated" },
+      { success: false, error: "Esta pessoa não pode ser alterada" },
       { status: 400 }
     );
   }
@@ -238,13 +265,13 @@ export async function DELETE(request: NextRequest) {
   const context = await getCurrentWorkspaceContext();
   if (!context) {
     return NextResponse.json(
-      { success: false, error: "Unauthorized" },
+      { success: false, error: "Não autorizado" },
       { status: 401 }
     );
   }
   if (!canManageWorkspace(context.role)) {
     return NextResponse.json(
-      { success: false, error: "Only owners and admins can remove members" },
+      { success: false, error: "Apenas proprietários e administradores podem remover pessoas" },
       { status: 403 }
     );
   }
@@ -252,7 +279,7 @@ export async function DELETE(request: NextRequest) {
   const parsed = deleteSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success || (!parsed.data.memberId && !parsed.data.invitationId)) {
     return NextResponse.json(
-      { success: false, error: "Missing member or invitation ID" },
+      { success: false, error: "Informe o integrante ou o convite" },
       { status: 400 }
     );
   }
@@ -263,7 +290,7 @@ export async function DELETE(request: NextRequest) {
     });
     if (!member || member.role === "OWNER" || member.userId === context.userId) {
       return NextResponse.json(
-        { success: false, error: "Member cannot be removed" },
+        { success: false, error: "Esta pessoa não pode ser removida" },
         { status: 400 }
       );
     }

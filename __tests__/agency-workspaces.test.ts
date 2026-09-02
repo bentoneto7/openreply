@@ -21,6 +21,7 @@ import {
 import {
   buildInvitationUrl,
   normalizeInvitationEmail,
+  resolveInvitationRole,
 } from "../lib/workspace-invitations";
 
 beforeEach(() => {
@@ -90,6 +91,12 @@ describe("agency workspace helpers", () => {
     expect(buildInvitationUrl("token_123", "https://manychat-alternative.com/")).toBe(
       "https://manychat-alternative.com/invite/token_123"
     );
+  });
+
+  it("preserva OWNER ao processar um convite com função inferior", () => {
+    expect(resolveInvitationRole("OWNER", "MEMBER")).toBe("OWNER");
+    expect(resolveInvitationRole("ADMIN", "MEMBER")).toBe("MEMBER");
+    expect(resolveInvitationRole(null, "ADMIN")).toBe("ADMIN");
   });
 });
 

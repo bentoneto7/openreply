@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
-import { normalizeInvitationEmail } from "@/lib/workspace-invitations";
+import {
+  normalizeInvitationEmail,
+  resolveInvitationRole,
+} from "@/lib/workspace-invitations";
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -50,6 +53,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const existingMembership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: {
+        workspaceId: invitation.workspaceId,
+        userId: session.user.id,
+      },
+    },
+    select: { role: true },
+  });
+  const acceptedRole = resolveInvitationRole(
+    existingMembership?.role,
+    invitation.role
+  );
+
   await prisma.$transaction([
     prisma.workspaceMember.upsert({
       where: {
@@ -61,9 +78,9 @@ export async function POST(request: NextRequest) {
       create: {
         workspaceId: invitation.workspaceId,
         userId: session.user.id,
-        role: invitation.role,
+        role: acceptedRole,
       },
-      update: { role: invitation.role },
+      update: { role: acceptedRole },
     }),
     prisma.workspaceInvitation.update({
       where: { id: invitation.id },

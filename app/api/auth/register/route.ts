@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/client";
 import { hashPassword } from "@/lib/password-auth";
 import { normalizeWhatsapp } from "@/lib/utils/phone";
+import { logServerError } from "@/lib/security/safe-error";
 
 const schema = z.object({
   name: z.string().trim().min(2).max(80),
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
       await tx.session.create({ data: { sessionToken, userId: user.id, expires } });
     });
   } catch (error) {
-    console.error("Registration failed", error instanceof Error ? error.message : error);
+    logServerError("Registration failed", error);
     return NextResponse.json({ success: false, error: "Não foi possível criar a conta. Tente novamente." }, { status: 500 });
   }
 

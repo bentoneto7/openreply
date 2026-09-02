@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import type { WorkspaceRole } from "@/app/generated/prisma/client";
 
 const INVITE_TTL_DAYS = 14;
 
@@ -24,5 +25,13 @@ export function buildInvitationUrl(token: string, baseUrl?: string) {
       : process.env.NEXTAUTH_URL ?? "http://localhost:3000");
 
   return `${resolvedBaseUrl.replace(/\/$/, "")}/invite/${token}`;
+}
+
+/** Convites nunca podem rebaixar a associação que representa o proprietário. */
+export function resolveInvitationRole(
+  currentRole: WorkspaceRole | null | undefined,
+  invitedRole: WorkspaceRole
+): WorkspaceRole {
+  return currentRole === "OWNER" ? "OWNER" : invitedRole;
 }
 
