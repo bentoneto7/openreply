@@ -21,6 +21,12 @@ import TemperatureBadge from "@/components/temperature-badge";
 import { TEMPERATURE_LABEL, TEMPERATURE_ORDER, type LeadTemperature } from "@/lib/heatmap/priority";
 import { LEAD_STATUSES, LEAD_STATUS_LABEL, type LeadStatusValue } from "@/lib/crm/lead-status";
 
+// GANHO and PERDIDO require the richer opportunity contract (confirmed Sale or
+// loss reason). This compact queue intentionally edits open stages only.
+const QUEUE_EDITABLE_STATUSES = LEAD_STATUSES.filter(
+  (status) => status !== "GANHO" && status !== "PERDIDO"
+);
+
 interface QueueLead {
   position: number;
   key: string;
@@ -212,7 +218,10 @@ export default function LeadTemperaturePanel({ accountId }: { accountId: string 
                           onChange={(event) => updateStatus(lead, event.target.value as LeadStatusValue)}
                           className="min-h-9 rounded border border-border bg-surface px-2 py-1 text-xs text-foreground disabled:opacity-50"
                         >
-                          {LEAD_STATUSES.map((status) => (
+                          {!QUEUE_EDITABLE_STATUSES.includes(lead.leadStatus as (typeof QUEUE_EDITABLE_STATUSES)[number]) && (
+                            <option value={lead.leadStatus} disabled>{LEAD_STATUS_LABEL[lead.leadStatus]}</option>
+                          )}
+                          {QUEUE_EDITABLE_STATUSES.map((status) => (
                             <option key={status} value={status}>{LEAD_STATUS_LABEL[status]}</option>
                           ))}
                         </select>
