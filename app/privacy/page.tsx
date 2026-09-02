@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <LegalShell
       title="Privacy Policy"
       description="Comentou helps businesses send Meta-compliant private replies when people comment on connected Instagram posts or reels."
-      updatedAt="August 16, 2026"
+      updatedAt="September 2, 2026"
     >
       <section>
         <h2 className="text-xl font-bold text-white">Data We Collect</h2>
@@ -79,14 +79,15 @@ export default function PrivacyPage() {
       <section>
         <h2 className="text-xl font-bold text-white">Retention And Deletion</h2>
         <p className="mt-3">
-          Customers can disconnect Instagram from settings, which removes the
-          stored Instagram connection and stops campaigns. Deleting the
-          connection also deletes the encrypted access token and every record
-          tied to that account, including leads, delivery logs, processed
-          comments and follower history. Direct message content is read live
-          from the Meta API each time a screen is opened and is not kept in our
-          database after the connection is removed. For account or data
-          deletion, follow the Data Deletion page linked from the footer.
+          An Instagram connection with no campaign or account history can be
+          disconnected from Settings; this removes its stored access token and
+          the otherwise empty connection. When persisted operational or
+          commercial history exists, self-service disconnection is blocked so
+          that opportunities, delivery records, attribution and follower
+          history are not erased by accident. Customers can request verified
+          deletion of that data through the Data Deletion page linked from the
+          footer. Direct message content is read live from the Meta API when a
+          screen is opened and is not stored in our database.
         </p>
       </section>
 

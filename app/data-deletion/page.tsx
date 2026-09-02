@@ -12,14 +12,17 @@ export default function DataDeletionPage() {
     <LegalShell
       title="Data Deletion"
       description="Use this page for Meta App Review and customer requests about removing Comentou account, workspace, Instagram, and campaign data."
-      updatedAt="May 24, 2026"
+      updatedAt="September 2, 2026"
     >
       <section>
         <h2 className="text-xl font-bold text-white">Disconnect Instagram</h2>
         <p className="mt-3">
-          Sign in, open Settings, and select Disconnect. This removes the stored
-          Instagram connection token and stops campaigns from sending private
-          replies for that workspace.
+          Sign in, open Settings, and select Disconnect. For a connection with
+          no persisted campaign or account history, this removes the stored
+          Instagram token and the empty connection. If operational or
+          commercial history exists, Comentou blocks self-service disconnection
+          to prevent accidental cascading deletion. Use the verified deletion
+          request below instead.
         </p>
       </section>
 
