@@ -15,6 +15,7 @@ const {
   mockQueueAdd,
   mockReserveWorkspaceDMSend,
   mockReleaseWorkspaceDMReservation,
+  mockObserveCommercialLead,
 } = vi.hoisted(() => ({
   mockPrisma: {
     automation: {
@@ -48,10 +49,15 @@ const {
   mockQueueAdd: vi.fn(),
   mockReserveWorkspaceDMSend: vi.fn(),
   mockReleaseWorkspaceDMReservation: vi.fn(),
+  mockObserveCommercialLead: vi.fn(),
 }));
 
 vi.mock("@/lib/db/client", () => ({
   prisma: mockPrisma,
+}));
+
+vi.mock("@/lib/crm/observe-lead", () => ({
+  observeCommercialLead: mockObserveCommercialLead,
 }));
 
 vi.mock("@/lib/meta/client", () => ({
@@ -238,6 +244,10 @@ beforeEach(() => {
     limit: 2000,
     periodStart: usagePeriodStart,
   });
+  mockObserveCommercialLead.mockResolvedValue({
+    leadId: "lead_1",
+    intent: { category: "LINK", signals: ["link_term"], source: "RULE" },
+  });
   mockReserveDMSlot.mockResolvedValue({
     allowed: true,
     currentCount: 11,
@@ -306,6 +316,19 @@ describe("DM Worker — Full Pipeline", () => {
       ["LINK", "PRICE"],
       true
     );
+    expect(mockObserveCommercialLead).toHaveBeenCalledWith({
+      workspaceId: "workspace_123",
+      instagramAccountId: "ig_account_row_1",
+      commenterId: "commenter_999",
+      commenterName: "commenter_user",
+      sourceAutomationId: "auto_789",
+      originType: "COMMENT",
+      originCommentId: "comment_555",
+      originPostId: "media_101",
+      originKeyword: "LINK",
+      originText: "I want the LINK!",
+      sourceEventKey: "worker:comment:auto_789:comment_555",
+    });
     expect(mockReserveWorkspaceDMSend).toHaveBeenCalledWith("workspace_123");
     expect(mockReserveDMSlot).toHaveBeenCalledWith("ig_456", 0);
     expect(mockDecryptToken).toHaveBeenCalledWith("encrypted_token_abc");
@@ -488,6 +511,21 @@ describe("DM Worker — Full Pipeline", () => {
     );
     expect(mockReserveWorkspaceDMSend).not.toHaveBeenCalled();
     expect(mockSendPrivateReply).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before sending when commercial persistence fails", async () => {
+    mockObserveCommercialLead.mockRejectedValueOnce(
+      new Error("commercial schema unavailable")
+    );
+
+    const processor = getProcessor();
+    await expect(processor(createMockJob())).rejects.toThrow(
+      "commercial schema unavailable"
+    );
+
+    expect(mockSendPrivateReply).not.toHaveBeenCalled();
+    expect(mockReserveWorkspaceDMSend).not.toHaveBeenCalled();
+    expect(mockPrisma.dmLog.create).not.toHaveBeenCalled();
   });
 
   it("should use 'there' when commenter name is not available", async () => {
@@ -946,6 +984,17 @@ describe("DM Worker — DM keyword trigger", () => {
     );
     // Never a private reply — there is no comment to reply to.
     expect(mockSendPrivateReply).not.toHaveBeenCalled();
+    expect(mockObserveCommercialLead).toHaveBeenCalledWith({
+      workspaceId: "workspace_123",
+      instagramAccountId: "ig_account_row_1",
+      commenterId: "commenter_999",
+      sourceAutomationId: "auto_789",
+      originType: "DIRECT_MESSAGE",
+      originMessageId: "mid_abc",
+      originKeyword: "LINK",
+      originText: "can I get the LINK?",
+      sourceEventKey: "worker:dm:auto_789:mid_abc",
+    });
   });
 
   it("should not reply when the DM text matches no keyword", async () => {

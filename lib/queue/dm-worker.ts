@@ -38,6 +38,7 @@ import {
   renderMessageWithTracking,
   renderMessageWithoutLink,
 } from "@/lib/tracking/message";
+import { observeCommercialLead } from "@/lib/crm/observe-lead";
 
 const BACKOFF_DELAYS = [5 * 60 * 1000, 15 * 60 * 1000, 45 * 60 * 1000];
 
@@ -236,6 +237,23 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
     if (!matchResult.matched) {
       continue;
     }
+
+    // The commercial ledger is part of the delivery contract. This write runs
+    // before every external send and is idempotent, so a failure must abort the
+    // job and let BullMQ retry instead of creating an unattributed DM.
+    await observeCommercialLead({
+      workspaceId: automation.workspaceId,
+      instagramAccountId: automation.instagramAccountId,
+      commenterId,
+      commenterName,
+      sourceAutomationId: automation.id,
+      originType: "COMMENT",
+      originCommentId: commentId,
+      originPostId: mediaId,
+      originKeyword: matchResult.matchedKeyword,
+      originText: commentText,
+      sourceEventKey: `worker:comment:${automation.id}:${commentId}`,
+    });
 
     const existingLog = await prisma.dmLog.findUnique({
       where: {
@@ -967,6 +985,20 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
         );
 
     if (!matchResult.matched) continue;
+
+    // Persist the inbound commercial event before any reply. Failing closed
+    // preserves attribution; BullMQ can safely retry this idempotent write.
+    await observeCommercialLead({
+      workspaceId: automation.workspaceId,
+      instagramAccountId: automation.instagramAccountId,
+      commenterId: senderId,
+      sourceAutomationId: automation.id,
+      originType: "DIRECT_MESSAGE",
+      originMessageId: messageId,
+      originKeyword: matchResult.matchedKeyword,
+      originText: messageText,
+      sourceEventKey: `worker:dm:${automation.id}:${messageId}`,
+    });
 
     const existingLog = await prisma.dmLog.findUnique({
       where: {

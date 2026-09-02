@@ -102,6 +102,10 @@ describe("campaign analytics helpers", () => {
     expect(calculateCtr(5, 0)).toBeNull();
   });
 
+  it("preserves repeated click events instead of hiding them behind a 100% cap", () => {
+    expect(calculateCtr(3, 2)).toBe(150);
+  });
+
   it("counts one comment once even when several campaigns matched it", () => {
     const rows = [
       { commentId: "c1", createdAt: new Date(2026, 7, 1, 10) },

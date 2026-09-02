@@ -56,9 +56,10 @@ export function summarizeIntentComments(rows: { commentId: string; createdAt: Da
 /** `null` = nada enviado ainda. Zero seria "medimos e deu 0%", que é mentira. */
 export function calculateCtr(clicks: number, sent: number): number | null {
   if (sent <= 0) return null;
-  // Raw clicks can exceed sends (repeat clicks, link-preview bots hitting the
-  // tracked URL), which makes a "rate" over 100% — cap it so CTR stays sane.
-  return Math.min(100, Number(((clicks / sent) * 100).toFixed(1)));
+  // LinkClick stores access events, not unique recipients. Repeat accesses and
+  // automated previews can therefore make this ratio exceed 100%; preserving
+  // the computed value is more auditable than silently capping the evidence.
+  return Number(((clicks / sent) * 100).toFixed(1));
 }
 
 export function summarizeDmStatuses(rows: StatusCountRow[]) {

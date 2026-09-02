@@ -16,11 +16,12 @@ function getHostname(url: string) {
 
 function getDayWindow(daysAgo: number) {
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  start.setDate(start.getDate() - daysAgo);
+  const start = new Date(now);
+  start.setUTCHours(0, 0, 0, 0);
+  start.setUTCDate(start.getUTCDate() - daysAgo);
 
   const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  end.setUTCDate(end.getUTCDate() + 1);
 
   return { start, end };
 }
@@ -126,7 +127,10 @@ export async function getCampaignReportBySlug(shareSlug: string) {
             workspaceId: automation.workspaceId,
             automationId: automation.id,
             status: "SENT",
-            createdAt: { gte: start, lt: end },
+            OR: [
+              { dmSentAt: { gte: start, lt: end } },
+              { dmSentAt: null, createdAt: { gte: start, lt: end } },
+            ],
           },
         }),
         prisma.linkClick.count({
@@ -139,9 +143,10 @@ export async function getCampaignReportBySlug(shareSlug: string) {
       ]);
 
       return {
-        date: start.toLocaleDateString("en-US", {
+        date: start.toLocaleDateString("pt-BR", {
           month: "short",
           day: "numeric",
+          timeZone: "UTC",
         }),
         sent,
         clicks,

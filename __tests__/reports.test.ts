@@ -103,12 +103,57 @@ describe("campaign reports", () => {
     });
     expect(report?.daily).toHaveLength(7);
     expect("dmMessage" in (report?.campaign ?? {})).toBe(false);
+    expect(mockPrisma.dmLog.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        status: "SENT",
+        OR: [
+          { dmSentAt: { gte: expect.any(Date), lt: expect.any(Date) } },
+          {
+            dmSentAt: null,
+            createdAt: { gte: expect.any(Date), lt: expect.any(Date) },
+          },
+        ],
+      }),
+    });
   });
 
   it("returns null when a report slug is missing or disabled", async () => {
     mockPrisma.automation.findFirst.mockResolvedValueOnce(null);
 
     await expect(getCampaignReportBySlug("missing")).resolves.toBeNull();
+  });
+
+  it("distinguishes a measured zero-click result from an unavailable click rate", async () => {
+    mockPrisma.dmLog.groupBy.mockReset();
+    mockPrisma.dmLog.groupBy
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    mockPrisma.linkClick.count.mockResolvedValue(0);
+    mockPrisma.dmLog.findFirst.mockResolvedValue(null);
+
+    const report = await getCampaignReportBySlug("report_123");
+
+    expect(report?.metrics).toMatchObject({
+      sent: 0,
+      clicks: 0,
+      ctr: null,
+    });
+  });
+
+  it("returns a measured 0% when replies were sent and no click was recorded", async () => {
+    mockPrisma.dmLog.groupBy.mockReset();
+    mockPrisma.dmLog.groupBy
+      .mockResolvedValueOnce([{ status: "SENT", _count: { _all: 2 } }])
+      .mockResolvedValueOnce([]);
+    mockPrisma.linkClick.count.mockResolvedValue(0);
+
+    const report = await getCampaignReportBySlug("report_123");
+
+    expect(report?.metrics).toMatchObject({
+      sent: 2,
+      clicks: 0,
+      ctr: 0,
+    });
   });
 
   it("builds report URLs and branding flags", () => {
