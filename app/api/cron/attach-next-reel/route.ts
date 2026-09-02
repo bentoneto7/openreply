@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getUserMedia, type InstagramMedia } from "@/lib/meta/client";
 import { decryptToken } from "@/lib/meta/oauth";
+import { isAuthorizedCronRequest } from "@/lib/security/cron-auth";
+import { logServerError } from "@/lib/security/safe-error";
 
 /**
  * Binds "next reel" campaigns to a real post.
@@ -18,10 +20,7 @@ function isReel(media: InstagramMedia): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET;
-
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 }
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest) {
         );
     } catch (err) {
       failures.push(account.id);
-      console.error("[attach-next-reel] media fetch failed", account.id, err);
+      logServerError("[attach-next-reel] media fetch failed", err);
       continue;
     }
 
