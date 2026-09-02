@@ -57,7 +57,7 @@ interface Campaign {
     skipped: number;
     failed: number;
     clicks: number;
-    ctr: number;
+    ctr: number | null;
     topKeywords: { keyword: string; count: number }[];
   };
 }
@@ -77,9 +77,12 @@ export default function CampaignsPage() {
   const [playingVideo, setPlayingVideo] = useState<{
     url: string;
     postUrl: string | null;
+    poster: string | null;
   } | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused">(
     "all"
@@ -199,18 +202,30 @@ export default function CampaignsPage() {
 
   async function toggleAtiva(id: string, isActive: boolean) {
     const next = !isActive;
+    if (
+      next &&
+      !window.confirm(
+        "Ativar esta campanha? Novos comentários que atendam às regras poderão receber respostas automáticas."
+      )
+    ) {
+      return;
+    }
     const setActive = (value: boolean) =>
       setAutomations((prev) =>
         prev.map((a) => (a.id === id ? { ...a, isActive: value } : a))
       );
     // Flip immediately, then revert if the server does not confirm the new
     // state — a 200 alone is not proof the field was written.
+    setStatusUpdatingId(id);
     setActive(next);
     try {
       const res = await fetch(`/api/automations?id=${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: next }),
+        body: JSON.stringify({
+          isActive: next,
+          ...(next ? { activationConfirmed: true } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.success || data.data?.isActive !== next) {
@@ -220,6 +235,8 @@ export default function CampaignsPage() {
       console.error("Failed to toggle:", err);
       setActive(isActive);
       alert("Não foi possível alterar o status da campanha. Tente novamente.");
+    } finally {
+      setStatusUpdatingId(null);
     }
   }
 
@@ -239,12 +256,20 @@ export default function CampaignsPage() {
   }
 
   async function deleteAutomation(id: string) {
-    if (!confirm("Excluir esta automação? Esta ação não pode ser desfeita.")) return;
+    if (!confirm("Excluir esta automação sem histórico? Esta ação não pode ser desfeita.")) return;
+    setActionError(null);
     try {
-      await fetch(`/api/automations?id=${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/automations?id=${id}`, { method: "DELETE" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error ?? "Não foi possível excluir a automação.");
+      }
       setAutomations((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
       console.error("Failed to delete:", err);
+      setActionError(
+        err instanceof Error ? err.message : "Não foi possível excluir a automação."
+      );
     }
   }
 
@@ -310,11 +335,13 @@ export default function CampaignsPage() {
         a.dmMessage.toLowerCase().includes(query)
       );
     })
-    // The API orders by createdAt desc, but the cards show CTR/sends, so rank
-    // by CTR then volume. Campaigns with no sends keep the API's recency order.
+    // The API orders by createdAt desc, but the cards show clicks-per-send, so
+    // rank measured ratios first, then volume. No-send rows stay at the end.
     .sort(
       (a, b) =>
-        b.analytics.ctr - a.analytics.ctr || b.analytics.sent - a.analytics.sent
+        (b.analytics.ctr ?? Number.NEGATIVE_INFINITY) -
+          (a.analytics.ctr ?? Number.NEGATIVE_INFINITY) ||
+        b.analytics.sent - a.analytics.sent
     );
 
   return (
@@ -352,6 +379,12 @@ export default function CampaignsPage() {
           </Link>
         </div>
       </div>
+
+      {actionError && (
+        <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">
+          {actionError}
+        </div>
+      )}
 
       {/* Search + status filter */}
       {automations.length > 0 && (
@@ -408,6 +441,7 @@ export default function CampaignsPage() {
       <div className="space-y-3">
         {filtered.map((auto) => {
           const videoUrl = auto.postId ? videos[auto.postId] : undefined;
+          const thumb = auto.postId ? thumbnails[auto.postId] : undefined;
           return (
           <div
             key={auto.id}
@@ -417,20 +451,24 @@ export default function CampaignsPage() {
             {/* Wraps rather than compressing: on a phone the action buttons drop
                 to their own line instead of squeezing the campaign summary. */}
             <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-              {auto.postId && thumbnails[auto.postId] && (
+              {auto.postId && thumb && (
                 videoUrl ? (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPlayingVideo({ url: videoUrl, postUrl: auto.postUrl });
+                      setPlayingVideo({
+                        url: videoUrl,
+                        postUrl: auto.postUrl,
+                        poster: thumb,
+                      });
                     }}
                     aria-label="Reproduzir prévia do reel"
                     className="shrink-0"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={thumbnails[auto.postId]}
+                      src={thumb}
                       alt="Reel da automação"
                       className="w-12 h-12 rounded object-cover border border-border hover:border-border-hover"
                       onError={(e) => {
@@ -448,7 +486,7 @@ export default function CampaignsPage() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={thumbnails[auto.postId]}
+                      src={thumb}
                       alt="Publicação da automação"
                       className="w-12 h-12 rounded object-cover border border-border"
                       onError={(e) => {
@@ -519,7 +557,7 @@ export default function CampaignsPage() {
                   </span>
                   <span>·</span>
                   <span className="font-medium text-foreground">
-                    {auto.analytics.ctr}% CTR
+                    {auto.analytics.ctr == null ? "—" : `${auto.analytics.ctr}%`} de cliques/DM
                   </span>
                   <span>·</span>
                   <span>{auto.analytics.sent} enviadas</span>
@@ -530,6 +568,9 @@ export default function CampaignsPage() {
                   <span>·</span>
                   <span>{auto.analytics.clicks} cliques</span>
                 </div>
+                <p className="mt-2 text-xs leading-4 text-zinc-500">
+                  Cliques/DM usa eventos de acesso ÷ DMs enviadas; pode incluir acessos repetidos ou prévias automatizadas e não representa venda.
+                </p>
 
                 {auto.analytics.topKeywords.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -561,9 +602,14 @@ export default function CampaignsPage() {
                 )}
                 {/* Toggle */}
                 <button
+                  type="button"
                   onClick={() => void toggleAtiva(auto.id, auto.isActive)}
+                  disabled={statusUpdatingId === auto.id}
+                  role="switch"
+                  aria-checked={auto.isActive}
+                  aria-label={`${auto.isActive ? "Pausar" : "Ativar"} campanha ${auto.name}`}
                   className={`
-                    relative w-11 h-6 rounded-full transition-colors
+                    relative h-6 w-11 rounded-full transition-colors disabled:cursor-wait disabled:opacity-50
                     ${auto.isActive ? "bg-accent" : "bg-zinc-300"}
                   `}
                 >
@@ -621,14 +667,13 @@ export default function CampaignsPage() {
 
       {/* Reel lightbox */}
       {playingVideo && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setPlayingVideo(null)}
+        <dialog
+          open
+          className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center border-0 bg-black/80 p-4"
+          aria-modal="true"
+          aria-label="Prévia do reel"
         >
-          <div
-            className="relative flex max-w-full flex-col items-end gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative flex max-w-full flex-col items-end gap-2">
             <div className="flex items-center gap-4 text-sm">
               {playingVideo.postUrl && (
                 <a
@@ -642,6 +687,7 @@ export default function CampaignsPage() {
               )}
               <button
                 type="button"
+                autoFocus
                 onClick={() => setPlayingVideo(null)}
                 className="text-zinc-300 hover:text-white"
               >
@@ -650,6 +696,7 @@ export default function CampaignsPage() {
             </div>
             <video
               src={playingVideo.url}
+              poster={playingVideo.poster ?? undefined}
               controls
               autoPlay
               loop
@@ -657,7 +704,7 @@ export default function CampaignsPage() {
               className="max-h-[80vh] max-w-full rounded-lg"
             />
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

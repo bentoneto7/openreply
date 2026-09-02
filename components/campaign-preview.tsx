@@ -150,19 +150,19 @@ function StatusBar() {
 }
 
 function Phone({ children }: { children: React.ReactNode }) {
-  const btn = "absolute w-[3px] rounded-sm bg-gradient-to-r from-zinc-500 to-zinc-700";
+  const btn = "absolute w-[3px] rounded-sm bg-zinc-600";
   return (
-    <div className="relative w-[300px]">
+    <div className="relative w-[300px] max-w-full">
       {/* Left side buttons: action, volume up, volume down */}
       <span className={`${btn} -left-[2px] top-[96px] h-7`} />
       <span className={`${btn} -left-[2px] top-[140px] h-12`} />
       <span className={`${btn} -left-[2px] top-[200px] h-12`} />
       {/* Right side buttons: side/power, camera control */}
-      <span className={`${btn} -right-[2px] left-auto top-[150px] h-20 bg-gradient-to-l`} />
-      <span className={`${btn} -right-[2px] left-auto top-[250px] h-9 bg-gradient-to-l`} />
+      <span className={`${btn} -right-[2px] left-auto top-[150px] h-20`} />
+      <span className={`${btn} -right-[2px] left-auto top-[250px] h-9`} />
 
       {/* Titanium frame → black bezel → screen */}
-      <div className="relative rounded-[3rem] bg-gradient-to-br from-zinc-500 via-zinc-700 to-zinc-600 p-[3px] shadow-2xl">
+      <div className="relative rounded-[3rem] bg-zinc-600 p-[3px] shadow-2xl">
         <div className="rounded-[2.85rem] bg-black p-[9px]">
           <div className="relative h-[640px] overflow-hidden rounded-[2.3rem] bg-black">
             {/* Dynamic Island */}
@@ -491,6 +491,12 @@ export default function CampaignPreview(props: CampaignPreviewProps) {
   return (
     <div className="flex flex-col items-center gap-5">
       <Phone>
+        <div
+          id={`campaign-preview-panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`campaign-preview-tab-${activeTab}`}
+          className="h-full"
+        >
         {activeTab === "post" && (
           <PostScreen
             username={props.username}
@@ -552,14 +558,27 @@ export default function CampaignPreview(props: CampaignPreviewProps) {
             inboundMessage={props.sampleComment}
           />
         )}
+        </div>
       </Phone>
 
-      <div className="inline-flex rounded-full bg-surface p-1">
-        {tabs.map((t) => (
+      <div className="flex max-w-full flex-wrap justify-center rounded-xl bg-surface p-1" role="tablist" aria-label="Telas da prévia">
+        {tabs.map((t, index) => (
           <button
             key={t.key}
+            id={`campaign-preview-tab-${t.key}`}
             type="button"
+            role="tab"
+            aria-selected={activeTab === t.key}
+            aria-controls={`campaign-preview-panel-${t.key}`}
+            tabIndex={activeTab === t.key ? 0 : -1}
             onClick={() => onTabChange(t.key)}
+            onKeyDown={(event) => {
+              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+              event.preventDefault();
+              const direction = event.key === "ArrowRight" ? 1 : -1;
+              const nextIndex = (index + direction + tabs.length) % tabs.length;
+              onTabChange(tabs[nextIndex].key);
+            }}
             className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
               activeTab === t.key
                 ? "bg-background font-medium text-foreground ring-1 ring-accent/40"
