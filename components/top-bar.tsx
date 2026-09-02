@@ -11,14 +11,17 @@ import Link from "next/link";
 import { Menu, Plus, Sparkles } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
-  "/dashboard": "Central de vendas",
-  "/heatmap": "Mapa de Calor",
-  "/overview": "Resultados",
-  "/inbox": "Oportunidades",
-  "/campaigns": "Automações",
-  "/campaigns/new": "Nova automação de vendas",
-  "/automations": "Automações",
-  "/automations/new": "Nova automação de vendas",
+  "/dashboard": "Agora",
+  "/opportunities": "Oportunidades",
+  "/heatmap": "Radar de resposta",
+  "/overview": "Conteúdo",
+  "/results": "Resultados",
+  "/reports": "Relatórios",
+  "/inbox": "Conversas",
+  "/campaigns": "Campanhas",
+  "/campaigns/new": "Nova campanha",
+  "/automations": "Campanhas",
+  "/automations/new": "Nova campanha",
   "/logs": "Atividade",
   "/billing": "Assinatura",
   "/settings": "Configurações",
@@ -37,7 +40,9 @@ export default function TopBar({
   instagramAccountCount,
 }: TopBarProps) {
   const pathname = usePathname();
-  const title = pageTitles[pathname] ?? "Comentou";
+  const title = Object.entries(pageTitles)
+    .sort(([left], [right]) => right.length - left.length)
+    .find(([path]) => pathname === path || pathname.startsWith(`${path}/`))?.[1] ?? "Comentou";
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 h-16 px-4 lg:px-8 border-b border-border bg-background">
@@ -45,11 +50,11 @@ export default function TopBar({
         <button
           onClick={onMenuClick}
           className="lg:hidden inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border text-muted hover:text-foreground"
-          aria-label="Abrir ou fechar menu lateral"
+          aria-label="Abrir menu lateral"
         >
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
-        <h1 className="truncate text-base font-semibold sm:text-lg">{title}</h1>
+        <p className="truncate text-base font-semibold sm:text-lg">{title}</p>
       </div>
 
       {instagramAccountCount > 0 ? (
@@ -59,7 +64,7 @@ export default function TopBar({
           </p>
           <Link href="/campaigns/new" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover">
             <Plus className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Nova automação</span>
+            <span className="hidden sm:inline">Nova campanha</span>
             <span className="sm:hidden">Criar</span>
           </Link>
         </div>

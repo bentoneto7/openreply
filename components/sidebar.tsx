@@ -11,29 +11,30 @@ import { usePathname } from "next/navigation";
 import BrandLogo from "@/components/brand-logo";
 import {
   BarChart3,
-  Bot,
+  BookOpenText,
   CreditCard,
-  Flame,
-  HeartHandshake,
+  FileChartColumn,
+  Inbox,
+  SquareKanban,
   LayoutDashboard,
-  ListChecks,
   LogOut,
+  Megaphone,
   Settings,
   Stethoscope,
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 
 const navItems = [
-  { label: "Central de vendas", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Mapa de Calor", href: "/heatmap", icon: Flame },
-  { label: "Resultados", href: "/overview", icon: BarChart3 },
-  { label: "Oportunidades", href: "/inbox", icon: HeartHandshake },
-  { label: "Automações", href: "/campaigns", icon: Bot },
-  { label: "Atividade", href: "/logs", icon: ListChecks },
-  { label: "Assinatura", href: "/billing", icon: CreditCard },
-  { label: "Configurações", href: "/settings", icon: Settings },
+  { label: "Agora", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Oportunidades", href: "/opportunities", icon: SquareKanban },
+  { label: "Conversas", href: "/inbox", icon: Inbox },
+  { label: "Campanhas", href: "/campaigns", icon: Megaphone },
+  { label: "Conteúdo", href: "/overview", icon: BookOpenText },
+  { label: "Resultados", href: "/results", icon: BarChart3 },
+  { label: "Relatórios", href: "/reports", icon: FileChartColumn },
   { label: "Diagnóstico", href: "/diagnostics", icon: Stethoscope },
-];
+  { label: "Configurações", href: "/settings", icon: Settings },
+] as const;
 
 interface SidebarProps {
   isOpen: boolean;
@@ -52,7 +53,9 @@ export default function Sidebar({
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div
+        <button
+          type="button"
+          aria-label="Fechar menu lateral"
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
           onClick={onClose}
         />
@@ -104,6 +107,15 @@ export default function Sidebar({
             <p className="truncate text-sm text-foreground">{workspaceName}</p>
             <p className="text-xs text-muted">Comentários que viram conversas</p>
           </div>
+
+          <Link
+            href="/billing"
+            onClick={onClose}
+            className="mb-1 flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+          >
+            <CreditCard aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={1.75} />
+            Assinatura
+          </Link>
 
           <form action={logoutAction}>
             <button
