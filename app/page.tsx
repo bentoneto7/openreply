@@ -66,7 +66,7 @@ const faqs = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white text-zinc-950">
+    <main data-theme="light" className="min-h-screen bg-white text-zinc-950">
       <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-6 lg:px-8">
           <Link href="/" aria-label="Comentou — início">

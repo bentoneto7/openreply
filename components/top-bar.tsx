@@ -9,6 +9,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Menu, Plus, Sparkles } from "lucide-react";
+import ThemeToggle from "@/components/theme-toggle";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Agora",
@@ -57,28 +58,33 @@ export default function TopBar({
         <p className="truncate text-base font-semibold sm:text-lg">{title}</p>
       </div>
 
-      {instagramAccountCount > 0 ? (
-        <div className="flex items-center gap-3">
+      {/* O seletor de tema fica sempre montado, inclusive antes de conectar uma
+          conta: trocar o tema não depende de ter Instagram ligado. */}
+      <div className="flex items-center gap-3">
+        {instagramAccountCount > 0 && (
           <p className="hidden shrink-0 truncate text-sm text-muted sm:block">
             {instagramAccountCount > 1 ? `${instagramAccountCount} contas` : `@${instagramUsername}`}
           </p>
+        )}
+        <ThemeToggle />
+        {instagramAccountCount > 0 ? (
           <Link href="/campaigns/new" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover">
             <Plus className="h-4 w-4" aria-hidden="true" />
             <span className="hidden sm:inline">Nova campanha</span>
             <span className="sm:hidden">Criar</span>
           </Link>
-        </div>
-      ) : (
-        <a
-          href="/api/instagram/connect"
-          className="shrink-0 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded bg-accent text-white hover:bg-accent-hover"
-        >
-          {/* Full label needs more room than a 360px header has to spare. */}
-          <Sparkles className="mr-2 inline h-4 w-4" aria-hidden="true" />
-          <span className="sm:hidden">Conectar</span>
-          <span className="hidden sm:inline">Conectar Instagram</span>
-        </a>
-      )}
+        ) : (
+          <a
+            href="/api/instagram/connect"
+            className="shrink-0 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded bg-accent text-white hover:bg-accent-hover"
+          >
+            {/* Full label needs more room than a 360px header has to spare. */}
+            <Sparkles className="mr-2 inline h-4 w-4" aria-hidden="true" />
+            <span className="sm:hidden">Conectar</span>
+            <span className="hidden sm:inline">Conectar Instagram</span>
+          </a>
+        )}
+      </div>
     </header>
   );
 }

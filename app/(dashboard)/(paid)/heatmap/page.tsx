@@ -166,7 +166,7 @@ export default function HeatmapPage() {
           </div>
           <ul className="divide-y divide-border">{queue.map((item) => {
             const deadline = windowLabel(item);
-            return <li key={item.key}><button onClick={() => setSelected(item)} className={`grid w-full gap-3 p-4 text-left transition-colors hover:bg-surface-hover sm:grid-cols-[auto_1fr_auto] ${selected?.key === item.key ? "bg-blue-50" : ""}`}>
+            return <li key={item.key}><button onClick={() => setSelected(item)} className={`grid w-full gap-3 p-4 text-left transition-colors hover:bg-surface-hover sm:grid-cols-[auto_1fr_auto] ${selected?.key === item.key ? "bg-accent-subtle" : ""}`}>
               <span className="text-sm font-semibold tabular-nums text-muted" aria-label={`Posição ${item.position}`}>{item.position}.</span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">

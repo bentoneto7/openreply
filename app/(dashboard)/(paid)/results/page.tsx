@@ -177,13 +177,13 @@ export default function ResultsPage() {
         </div>
       </header>
 
-      {error && <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">{error}</div>}
+      {error && <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle p-4 text-sm text-error">{error}</div>}
 
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="panel h-36 rounded" />)}</div>
       ) : data ? (
         <>
-          <section className={`rounded border p-4 ${status === "measured" ? "border-green-200 bg-green-50" : status === "partial" ? "border-amber-200 bg-amber-50" : "border-zinc-200 bg-zinc-50"}`}>
+          <section className={`rounded border p-4 ${status === "measured" ? "border-success-subtle-border bg-success-subtle" : status === "partial" ? "border-warning-subtle-border bg-warning-subtle" : "border-border bg-surface-subtle"}`}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-foreground">{COVERAGE_LABEL[status]}</p>
@@ -210,8 +210,8 @@ export default function ResultsPage() {
               <h2 className="text-base font-semibold">Receita confirmada</h2>
               <p className="mt-1 text-xs text-muted">Valores são separados por moeda e nunca somados entre si.</p>
               <div className="mt-5 space-y-3">
-                {revenue == null && <p className="rounded bg-zinc-50 p-4 text-sm text-muted">Dados indisponíveis para o período.</p>}
-                {revenue?.length === 0 && <p className="rounded bg-zinc-50 p-4 text-sm text-muted">Medição ativa, sem vendas confirmadas no período.</p>}
+                {revenue == null && <p className="rounded bg-surface-subtle p-4 text-sm text-muted">Dados indisponíveis para o período.</p>}
+                {revenue?.length === 0 && <p className="rounded bg-surface-subtle p-4 text-sm text-muted">Medição ativa, sem vendas confirmadas no período.</p>}
                 {revenue?.map((row) => (
                   <div key={row.currency} className="flex items-end justify-between gap-4 rounded border border-border p-4">
                     <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">{row.currency}</p><p className="mt-1 text-2xl font-semibold">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: row.currency }).format(row.amountCents / 100)}</p></div>
@@ -225,11 +225,11 @@ export default function ResultsPage() {
               <h2 className="text-base font-semibold">Pipeline no período</h2>
               <p className="mt-1 text-xs text-muted">Etapa atual das oportunidades criadas no recorte.</p>
               <div className="mt-5 space-y-4">
-                {data.metrics.pipeline.stages == null && <p className="rounded bg-zinc-50 p-4 text-sm text-muted">Pipeline indisponível para este período.</p>}
+                {data.metrics.pipeline.stages == null && <p className="rounded bg-surface-subtle p-4 text-sm text-muted">Pipeline indisponível para este período.</p>}
                 {data.metrics.pipeline.stages?.map((stage) => (
                   <div key={stage.stage}>
                     <div className="mb-2 flex items-center justify-between gap-3 text-sm"><span>{COMMERCIAL_STATUS_LABEL[stage.stage]}</span><strong>{stage.count}</strong></div>
-                    <div className="h-2 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.max((stage.count / maxStage) * 100, stage.count > 0 ? 4 : 0)}%` }} /></div>
+                    <div className="h-2 overflow-hidden rounded-full bg-surface-muted"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.max((stage.count / maxStage) * 100, stage.count > 0 ? 4 : 0)}%` }} /></div>
                   </div>
                 ))}
               </div>

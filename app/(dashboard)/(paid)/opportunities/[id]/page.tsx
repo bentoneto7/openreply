@@ -241,8 +241,8 @@ export default function OpportunityDetailPage() {
         </div>
       </header>
 
-      {error && <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">{error}</div>}
-      {notice && <div role="status" className="rounded border border-green-200 bg-green-50 p-4 text-sm text-green-800">{notice}</div>}
+      {error && <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle p-4 text-sm text-error">{error}</div>}
+      {notice && <div role="status" className="rounded border border-success-subtle-border bg-success-subtle p-4 text-sm text-success-strong">{notice}</div>}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
         <form onSubmit={save} className="panel rounded p-4 sm:p-6">
@@ -304,7 +304,7 @@ export default function OpportunityDetailPage() {
             )}
             {form.status === "GANHO" && !hasConfirmedSale && (
               <label className="text-sm font-medium sm:col-span-2">Valor confirmado da venda (R$)
-                <input required value={form.saleAmount} onChange={(event) => updateField("saleAmount", event.target.value)} inputMode="decimal" className="mt-2 min-h-11 w-full rounded border border-green-300 bg-green-50 px-3" placeholder="0,00" />
+                <input required value={form.saleAmount} onChange={(event) => updateField("saleAmount", event.target.value)} inputMode="decimal" className="mt-2 min-h-11 w-full rounded border border-success-subtle-border bg-success-subtle px-3" placeholder="0,00" />
                 <span className="mt-2 block text-xs font-normal text-muted">Esse valor cria um evento de venda confirmada. Clique e valor potencial não viram receita.</span>
               </label>
             )}
@@ -322,7 +322,7 @@ export default function OpportunityDetailPage() {
               <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted">Comentário ou mensagem</dt><dd className="mt-1 text-foreground">{opportunity.origin.text ?? "Texto de origem indisponível"}</dd></div>
               <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted">Palavra-chave</dt><dd className="mt-1 text-foreground">{opportunity.origin.keyword ?? "Não identificada"}</dd></div>
               <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted">Classificação</dt><dd className="mt-1 text-foreground">{INTENT_LABEL[opportunity.intent.category ?? "UNKNOWN"]} · {opportunity.intent.source === "HUMAN" ? "corrigida por pessoa" : opportunity.intent.source === "RULE" ? "regra determinística" : "origem indisponível"}</dd></div>
-              <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted">Sinais usados</dt><dd className="mt-2 flex flex-wrap gap-2">{opportunity.intent.signals.length ? opportunity.intent.signals.map((signal) => <span key={signal} className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-700">{signal.replaceAll("_", " ")}</span>) : <span className="text-muted">Nenhum sinal registrado</span>}</dd></div>
+              <div><dt className="text-xs font-semibold uppercase tracking-wide text-muted">Sinais usados</dt><dd className="mt-2 flex flex-wrap gap-2">{opportunity.intent.signals.length ? opportunity.intent.signals.map((signal) => <span key={signal} className="rounded bg-surface-muted px-2 py-1 text-xs text-foreground">{signal.replaceAll("_", " ")}</span>) : <span className="text-muted">Nenhum sinal registrado</span>}</dd></div>
             </dl>
           </section>
 

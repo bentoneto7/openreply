@@ -76,8 +76,8 @@ export default function OverviewPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
         {[...Array(8)].map((_, i) => (
           <div key={i} className="panel rounded p-4 h-24 sm:p-5">
-            <div className="h-4 w-16 bg-zinc-200 rounded" />
-            <div className="mt-3 h-6 w-20 bg-zinc-200/60 rounded" />
+            <div className="h-4 w-16 bg-surface-muted rounded" />
+            <div className="mt-3 h-6 w-20 bg-surface-muted/60 rounded" />
           </div>
         ))}
       </div>
@@ -149,7 +149,7 @@ export default function OverviewPage() {
         </div>
         <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
           <label className="flex flex-col gap-2 text-sm">
-            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
               Período
             </span>
             <select
@@ -228,7 +228,7 @@ export default function OverviewPage() {
           <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             <table className="w-full min-w-[720px] text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-zinc-500 border-b border-border">
+                <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border">
                   <th className="py-2 pr-3 font-medium">#</th>
                   <th className="py-2 pr-4 font-medium">Publicação</th>
                   <th className="py-2 px-3 font-medium text-right">Visualizações</th>
@@ -246,7 +246,7 @@ export default function OverviewPage() {
                     key={p.id}
                     className="border-b border-border last:border-0"
                   >
-                    <td className="py-3 pr-3 text-zinc-500">{i + 1}</td>
+                    <td className="py-3 pr-3 text-muted">{i + 1}</td>
                     <td className="py-3 pr-4 max-w-xs">
                       <div className="flex items-center gap-3">
                         {p.thumbnailUrl ? (
@@ -275,7 +275,7 @@ export default function OverviewPage() {
                               {p.caption || `Publicação ${p.mediaType}`}
                             </span>
                           )}
-                          <span className="text-xs text-zinc-500">{p.mediaType}</span>
+                          <span className="text-xs text-muted">{p.mediaType}</span>
                         </div>
                       </div>
                     </td>
@@ -297,7 +297,7 @@ export default function OverviewPage() {
                     <td className="py-3 px-3 text-right text-muted">
                       {formatNumber(p.shares)}
                     </td>
-                    <td className="py-3 pl-3 text-right text-zinc-500">
+                    <td className="py-3 pl-3 text-right text-muted">
                       {formatDate(p.timestamp)}
                     </td>
                   </tr>

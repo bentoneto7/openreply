@@ -75,11 +75,11 @@ export default function ReportsPage() {
         <p className="mt-1 max-w-2xl text-sm text-muted">Escolha quais campanhas terão um link público somente leitura. Os indicadores são acumulados desde a criação da campanha e mostram envios e cliques, não vendas.</p>
       </header>
 
-      <aside className="rounded border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+      <aside className="rounded border border-accent-subtle-border bg-accent-subtle p-4 text-sm text-accent-strong">
         Links ficam inativos por padrão. Ativar o compartilhamento não expõe mensagens privadas, tokens ou dados internos do contato.
       </aside>
 
-      {error && <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">{error}</div>}
+      {error && <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle p-4 text-sm text-error">{error}</div>}
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">{Array.from({ length: 4 }, (_, index) => <div key={index} className="panel h-52 rounded" />)}</div>
@@ -95,7 +95,7 @@ export default function ReportsPage() {
             <article key={item.id} className="panel rounded p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0"><h2 className="truncate font-semibold">{item.name}</h2><p className="mt-1 text-xs text-muted">@{item.instagramAccount.username} · {item.isActive ? "Campanha ativa" : "Campanha pausada"}</p></div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${item.reportShareEnabled ? "bg-green-50 text-green-700" : "bg-zinc-100 text-zinc-600"}`}>{item.reportShareEnabled ? "Compartilhado" : "Privado"}</span>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${item.reportShareEnabled ? "bg-success-subtle text-success-strong" : "bg-surface-muted text-muted"}`}>{item.reportShareEnabled ? "Compartilhado" : "Privado"}</span>
               </div>
               <dl className="mt-5 grid grid-cols-3 gap-3 border-y border-border py-4 text-center">
                 <div><dt className="text-xs text-muted">DMs enviadas</dt><dd className="mt-1 font-semibold">{item.analytics.sent}</dd></div>

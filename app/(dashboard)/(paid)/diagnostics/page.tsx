@@ -125,7 +125,7 @@ export default function DiagnosticsPage() {
         <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-border bg-surface px-4 text-sm font-semibold hover:border-border-hover disabled:opacity-50"><RefreshCw className="h-4 w-4" aria-hidden="true" />{loading ? "Atualizando..." : "Atualizar"}</button>
       </header>
 
-      {error && <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">{error}</div>}
+      {error && <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle p-4 text-sm text-error">{error}</div>}
 
       {loading && !loadedAt ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <div key={index} className="panel h-32 rounded" />)}</div> : (
         <>
@@ -144,7 +144,7 @@ export default function DiagnosticsPage() {
           <section id="saude-tecnica" aria-labelledby="titulo-saude-tecnica" className="space-y-4 scroll-mt-24">
             <div><h2 id="titulo-saude-tecnica" className="text-lg font-semibold">Saúde técnica</h2><p className="mt-1 text-xs text-muted">Conexão, worker, fila e processamento. Acesso restrito a administradores.</p></div>
             {technicalForbidden ? (
-              <div className="rounded border border-zinc-200 bg-zinc-50 p-5"><p className="text-sm font-semibold">Dados técnicos restritos</p><p className="mt-1 text-sm text-muted">Seu papel permite trabalhar oportunidades, mas não visualizar logs operacionais do workspace.</p></div>
+              <div className="rounded border border-border bg-surface-subtle p-5"><p className="text-sm font-semibold">Dados técnicos restritos</p><p className="mt-1 text-sm text-muted">Seu papel permite trabalhar oportunidades, mas não visualizar logs operacionais do workspace.</p></div>
             ) : technical ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Metric label="Worker" value={technical.workerHealth.healthy ? "Saudável" : "Atenção"} helper={technical.workerHealth.ageMs == null ? "Nenhum heartbeat disponível." : `Último heartbeat há ${Math.round(technical.workerHealth.ageMs / 1000)}s.`} alert={!technical.workerHealth.healthy} />

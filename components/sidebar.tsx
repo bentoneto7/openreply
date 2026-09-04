@@ -90,7 +90,7 @@ export default function Sidebar({
                   flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors
                   ${
                     isActive
-                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      ? "bg-accent-subtle text-accent-strong font-semibold"
                       : "text-muted hover:text-foreground hover:bg-surface-hover"
                   }
                 `}

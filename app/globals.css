@@ -1,37 +1,154 @@
 @import "tailwindcss";
 
-/* Comentou — sistema visual oficial. */
+/* Comentou — sistema visual oficial.
+ *
+ * Dois temas. Toda cor da plataforma sai de um token semântico definido em
+ * :root (claro) e sobrescrito em [data-theme="dark"]; o utilitário do Tailwind
+ * aponta para o token via @theme inline, então trocar o atributo no <html>
+ * repinta a interface inteira sem nenhuma classe `dark:` espalhada.
+ *
+ * Nomear pelo papel e não pela cor é o que faz isso funcionar: `bg-surface`
+ * continua certo nos dois temas, `bg-white` só está certo em um.
+ */
+
+@custom-variant dark ([data-theme="dark"] &);
+
+/* O tema claro vale para o documento inteiro e também para qualquer subárvore
+   que se declare clara. É assim que o site público continua claro mesmo quando
+   quem está logado escolheu o escuro na plataforma: as páginas de marketing,
+   login e jurídico marcam `data-theme="light"` na própria raiz. */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --ds-background: #f7f9fc;
+  --ds-foreground: #111827;
+  --ds-surface: #ffffff;
+  --ds-surface-hover: #eff6ff;
+  /* Degraus acima do surface, para linhas zebradas, colunas de kanban e caixas
+     de código — o que antes era zinc-50 e zinc-100. */
+  --ds-surface-subtle: #fafafa;
+  --ds-surface-muted: #f4f4f5;
+  --ds-border: #e2e8f0;
+  --ds-border-hover: #bfdbfe;
+  --ds-muted: #64748b;
+  --ds-accent: #2563eb;
+  --ds-accent-hover: #1d4ed8;
+  --ds-success: #16a34a;
+  --ds-error: #dc2626;
+  --ds-warning: #d97706;
+
+  /* Famílias de estado. Cada uma é um trio fundo/borda/texto pensado para ter
+     contraste suficiente entre si nos dois temas — no escuro o fundo escurece e
+     o texto clareia, em vez de inverter só a luminância do tema claro, que
+     produziria tarja fluorescente. */
+  --ds-accent-subtle: #eff6ff;
+  --ds-accent-subtle-border: #bfdbfe;
+  --ds-accent-strong: #1d4ed8;
+
+  --ds-success-subtle: #f0fdf4;
+  --ds-success-subtle-border: #bbf7d0;
+  --ds-success-strong: #15803d;
+
+  --ds-error-subtle: #fef2f2;
+  --ds-error-subtle-border: #fecaca;
+  --ds-error-strong: #b91c1c;
+
+  --ds-warning-subtle: #fffbeb;
+  --ds-warning-subtle-border: #fde68a;
+  --ds-warning-strong: #b45309;
+
+  --ds-panel-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Azulado, não cinza puro: mantém o parentesco com o tema claro, que também é
+     um branco levemente azul (#f7f9fc), em vez de virar outro produto. */
+  --ds-background: #0b0f19;
+  --ds-foreground: #e8edf7;
+  --ds-surface: #131a29;
+  --ds-surface-hover: #1c2740;
+  --ds-surface-subtle: #171f30;
+  --ds-surface-muted: #1c2536;
+  --ds-border: #26304a;
+  --ds-border-hover: #3b4a72;
+  --ds-muted: #94a3b8;
+  /* #2563eb não sobrevive sobre fundo escuro: clareia o azul em vez de manter o
+     mesmo hex e perder o contraste do texto branco em cima dele. */
+  --ds-accent: #3b82f6;
+  --ds-accent-hover: #60a5fa;
+  --ds-success: #22c55e;
+  --ds-error: #f87171;
+  --ds-warning: #fbbf24;
+
+  --ds-accent-subtle: #14213d;
+  --ds-accent-subtle-border: #1e3a8a;
+  --ds-accent-strong: #93c5fd;
+
+  --ds-success-subtle: #0d2818;
+  --ds-success-subtle-border: #166534;
+  --ds-success-strong: #86efac;
+
+  --ds-error-subtle: #2c1416;
+  --ds-error-subtle-border: #7f1d1d;
+  --ds-error-strong: #fca5a5;
+
+  --ds-warning-subtle: #2a1f0a;
+  --ds-warning-subtle-border: #78350f;
+  --ds-warning-strong: #fcd34d;
+
+  /* Sombra não existe no escuro — o que separa camadas é a borda. Mantida como
+     um brilho quase imperceptível só para o painel não colar no fundo. */
+  --ds-panel-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+}
 
 @theme inline {
-  --color-background: #f7f9fc;
-  --color-foreground: #111827;
-  --color-surface: #ffffff;
-  --color-surface-hover: #eff6ff;
-  --color-border: #e2e8f0;
-  --color-border-hover: #bfdbfe;
-  --color-muted: #64748b;
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --color-success: #16a34a;
-  --color-error: #dc2626;
-  --color-warning: #d97706;
+  --color-background: var(--ds-background);
+  --color-foreground: var(--ds-foreground);
+  --color-surface: var(--ds-surface);
+  --color-surface-hover: var(--ds-surface-hover);
+  --color-surface-subtle: var(--ds-surface-subtle);
+  --color-surface-muted: var(--ds-surface-muted);
+  --color-border: var(--ds-border);
+  --color-border-hover: var(--ds-border-hover);
+  --color-muted: var(--ds-muted);
+  --color-accent: var(--ds-accent);
+  --color-accent-hover: var(--ds-accent-hover);
+  --color-success: var(--ds-success);
+  --color-error: var(--ds-error);
+  --color-warning: var(--ds-warning);
+
+  --color-accent-subtle: var(--ds-accent-subtle);
+  --color-accent-subtle-border: var(--ds-accent-subtle-border);
+  --color-accent-strong: var(--ds-accent-strong);
+
+  --color-success-subtle: var(--ds-success-subtle);
+  --color-success-subtle-border: var(--ds-success-subtle-border);
+  --color-success-strong: var(--ds-success-strong);
+
+  --color-error-subtle: var(--ds-error-subtle);
+  --color-error-subtle-border: var(--ds-error-subtle-border);
+  --color-error-strong: var(--ds-error-strong);
+
+  --color-warning-subtle: var(--ds-warning-subtle);
+  --color-warning-subtle-border: var(--ds-warning-subtle-border);
+  --color-warning-strong: var(--ds-warning-strong);
+
   --font-sans: var(--font-plus-jakarta), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, monospace;
 }
 
-html {
-  color-scheme: light;
-}
-
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
+  background: var(--ds-background);
+  color: var(--ds-foreground);
   font-family: var(--font-sans);
 }
 
 /* Focus ring — visible, for keyboard users. */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--ds-accent);
   outline-offset: 2px;
 }
 
@@ -56,17 +173,17 @@ select:focus-visible {
 
 /* Panel — flat container. Replaces .glass / .glass-strong. */
 .panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  box-shadow: var(--ds-panel-shadow);
 }
 
 /* Kept as no-op aliases so existing markup degrades to plain surfaces
    instead of breaking. Prefer .panel in new code. */
 .glass,
 .glass-strong {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
 }
 
 .gradient-mesh {

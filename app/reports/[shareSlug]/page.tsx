@@ -73,7 +73,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
   );
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main data-theme="light" className="min-h-screen bg-background text-foreground">
       <section className="border-b border-blue-800 bg-blue-700">
         <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">

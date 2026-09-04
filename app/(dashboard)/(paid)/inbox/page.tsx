@@ -63,31 +63,31 @@ function CopilotPanel({
   ];
 
   return (
-    <section className="rounded border border-blue-200 bg-blue-50/60 p-3" aria-labelledby="copilot-title">
+    <section className="rounded border border-accent-subtle-border bg-accent-subtle/60 p-3" aria-labelledby="copilot-title">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="copilot-title" className="text-sm font-semibold text-blue-950">Copiloto comercial</h3>
-        <span className="rounded-full border border-blue-200 bg-white px-2 py-1 text-xs font-semibold text-blue-700">Fallback local</span>
+        <h3 id="copilot-title" className="text-sm font-semibold text-accent-strong">Copiloto comercial</h3>
+        <span className="rounded-full border border-accent-subtle-border bg-surface px-2 py-1 text-xs font-semibold text-accent-strong">Fallback local</span>
       </div>
-      <p className="mt-2 text-xs leading-5 text-blue-950">{output.summary}</p>
-      {output.observedObjection && <p className="mt-2 text-xs leading-5 text-blue-900"><strong>Objeção observada:</strong> {output.observedObjection}</p>}
-      <p className="mt-2 text-xs leading-5 text-blue-900"><strong>Pergunta sugerida:</strong> {output.qualificationQuestion}</p>
+      <p className="mt-2 text-xs leading-5 text-accent-strong">{output.summary}</p>
+      {output.observedObjection && <p className="mt-2 text-xs leading-5 text-accent-strong"><strong>Objeção observada:</strong> {output.observedObjection}</p>}
+      <p className="mt-2 text-xs leading-5 text-accent-strong"><strong>Pergunta sugerida:</strong> {output.qualificationQuestion}</p>
       <div className="mt-3 space-y-2">
         {drafts.map((item) => (
-          <div key={item.label} className="rounded border border-blue-100 bg-white p-2.5">
+          <div key={item.label} className="rounded border border-accent-subtle-border bg-surface p-2.5">
             <p className="text-xs leading-5 text-foreground">{item.value}</p>
             <button
               type="button"
               disabled={!canUseDraft}
               onClick={() => onUseDraft(item.value)}
-              className="mt-2 min-h-9 rounded border border-blue-200 px-3 text-xs font-semibold text-accent hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 min-h-9 rounded border border-accent-subtle-border px-3 text-xs font-semibold text-accent hover:bg-accent-subtle disabled:cursor-not-allowed disabled:opacity-50"
             >
               Usar rascunho {item.label.toLocaleLowerCase("pt-BR")}
             </button>
           </div>
         ))}
       </div>
-      <p className="mt-3 text-xs leading-5 text-blue-900"><strong>Próximo passo:</strong> {output.recommendation.text}</p>
-      <p className="mt-2 text-xs leading-5 text-blue-800">Regras determinísticas, sem provedor externo. Revisão e ação humana são obrigatórias; nenhum rascunho é enviado automaticamente.</p>
+      <p className="mt-3 text-xs leading-5 text-accent-strong"><strong>Próximo passo:</strong> {output.recommendation.text}</p>
+      <p className="mt-2 text-xs leading-5 text-accent-strong">Regras determinísticas, sem provedor externo. Revisão e ação humana são obrigatórias; nenhum rascunho é enviado automaticamente.</p>
     </section>
   );
 }
@@ -518,7 +518,7 @@ export default function InboxPage() {
         </div>
       )}
       {accountsStatus === "error" && (
-        <div role="alert" className="rounded border border-red-200 bg-red-50 px-4 py-4 text-sm text-error">
+        <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle px-4 py-4 text-sm text-error">
           {accountsError ?? "Não foi possível carregar as contas conectadas."}
           <button
             type="button"
@@ -542,7 +542,7 @@ export default function InboxPage() {
         </section>
       )}
       {deepLinkError && (
-        <div role="alert" className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div role="alert" className="rounded border border-warning-subtle-border bg-warning-subtle px-4 py-3 text-sm text-warning-strong">
           {deepLinkError} Você ainda pode selecionar outra conversa abaixo.
         </div>
       )}
@@ -585,7 +585,7 @@ export default function InboxPage() {
                       <span className="truncate text-sm font-medium text-foreground">
                         @{c.contact.username ?? "contato"}
                       </span>
-                      <span className="shrink-0 text-xs text-zinc-500">
+                      <span className="shrink-0 text-xs text-muted">
                         {formatTime(c.updatedTime)}
                       </span>
                     </div>
@@ -629,7 +629,7 @@ export default function InboxPage() {
 
               <div ref={scrollRef} role="log" aria-live="polite" aria-label="Mensagens da conversa" className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
                 {threadError && (
-                  <div role="alert" className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-error">
+                  <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle px-3 py-2 text-xs text-error">
                     {threadError}
                     <button type="button" onClick={() => void loadMessages(active.id, false)} className="ml-2 font-semibold underline">Tentar novamente</button>
                   </div>
@@ -654,7 +654,7 @@ export default function InboxPage() {
                         <p className="whitespace-pre-wrap break-words">{m.text}</p>
                         <p
                           className={`mt-1 text-[10px] ${
-                            m.fromMe ? "text-white/70" : "text-zinc-500"
+                            m.fromMe ? "text-white/70" : "text-muted"
                           }`}
                         >
                           {formatTime(m.createdTime)}
@@ -678,7 +678,7 @@ export default function InboxPage() {
                     onKeyDown={handleKeyDown}
                     rows={1}
                     placeholder="Escreva uma resposta… (Enter envia; Shift+Enter quebra a linha)"
-                    className="max-h-32 min-h-[40px] flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
+                    className="max-h-32 min-h-[40px] flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none"
                   />
                   <button
                     type="button"
@@ -701,7 +701,7 @@ export default function InboxPage() {
               <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Etapa</p><select aria-label="Etapa comercial" value={commercial.status} disabled={commercialSaving} onChange={(event) => void updateCommercialStatus(event.target.value as CommercialStatus)} className="mt-2 min-h-10 w-full rounded border border-border bg-surface px-3 text-sm disabled:opacity-50"><option value="NOVO">Novo</option><option value="ABORDADO">Abordado</option><option value="RESPONDEU">Respondeu</option><option value="NEGOCIANDO">Negociando</option>{(commercial.status === "GANHO" || commercial.status === "PERDIDO") && <option value={commercial.status} disabled>{COMMERCIAL_STATUS_LABEL[commercial.status]} — edite no detalhe</option>}</select><p className="mt-2 text-xs text-muted">Ganho e perda exigem confirmação no detalhe.</p></div>
               <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Intenção observada</p><p className="mt-1 text-sm font-semibold">{INTENT_LABEL[commercial.intent.category ?? "UNKNOWN"]}</p><p className="mt-1 text-xs leading-5 text-muted">{commercial.intent.signals.length ? `Sinais: ${commercial.intent.signals.join(", ").replaceAll("_", " ")}` : "Sem sinais explicáveis registrados."}</p></div>
               {copilot && <CopilotPanel output={copilot} canUseDraft={canUseCopilotDraft} onUseDraft={useCopilotDraft} />}
-              <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Origem</p><p className="mt-1 text-sm">{commercial.sourceAutomation?.name ?? "Sem campanha vinculada"}</p><p className="mt-1 text-xs text-muted">{commercial.origin.keyword ? `Palavra-chave: ${commercial.origin.keyword}` : "Palavra-chave não identificada"}</p>{commercial.origin.text && <p className="mt-2 rounded bg-zinc-50 p-3 text-xs leading-5 text-muted">“{commercial.origin.text}”</p>}</div>
+              <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Origem</p><p className="mt-1 text-sm">{commercial.sourceAutomation?.name ?? "Sem campanha vinculada"}</p><p className="mt-1 text-xs text-muted">{commercial.origin.keyword ? `Palavra-chave: ${commercial.origin.keyword}` : "Palavra-chave não identificada"}</p>{commercial.origin.text && <p className="mt-2 rounded bg-surface-subtle p-3 text-xs leading-5 text-muted">“{commercial.origin.text}”</p>}</div>
               <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Responsável</p><p className="mt-1 text-sm">{commercial.assignee?.user.name ?? commercial.assignee?.user.email ?? "Sem responsável"}</p></div>
               <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Próxima ação</p><p className="mt-1 text-sm">{commercial.commercial.nextAction ?? "Não definida"}</p>{commercial.commercial.nextActionAt && <p className="mt-1 text-xs text-muted">{new Date(commercial.commercial.nextActionAt).toLocaleString("pt-BR")}</p>}</div>
               <div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Links e cliques por contato</p><p className="mt-1 text-xs leading-5 text-muted">Não disponíveis neste contrato. Nenhum clique é apresentado como compra.</p></div>
