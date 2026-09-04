@@ -22,6 +22,7 @@ const { context, mockAccess, mockPrisma, tx } = vi.hoisted(() => {
     mockPrisma: {
       lead: { findMany: vi.fn(), findFirst: vi.fn() },
       instagramAccount: { findFirst: vi.fn() },
+      dmLog: { findMany: vi.fn() },
       $transaction: vi.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
     },
   };
@@ -81,6 +82,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockAccess.getCurrentWorkspaceContext.mockResolvedValue(context);
   mockPrisma.lead.findMany.mockResolvedValue([]);
+  mockPrisma.dmLog.findMany.mockResolvedValue([]);
   mockPrisma.lead.findFirst.mockResolvedValue(detailRow);
   mockPrisma.instagramAccount.findFirst.mockResolvedValue({ id: "account_1" });
   tx.leadEvent.findUnique.mockResolvedValue(null);
@@ -155,6 +157,8 @@ describe("opportunities API tenancy and concurrency", () => {
       data: {
         items: [],
         page: { limit: 10, hasMore: false, nextCursor: null },
+        sort: "recent",
+        window: null,
       },
     });
     expect(mockPrisma.instagramAccount.findFirst).toHaveBeenCalledWith({
@@ -423,5 +427,178 @@ describe("opportunities API tenancy and concurrency", () => {
     expect(payload).toMatchObject({ code: "INVALID_OUTCOME" });
     expect(payload.error).toMatch(/reaberta.*auditada/i);
     expect(tx.lead.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("opportunities list ordered by engagement", () => {
+  const signalNow = new Date();
+
+  function signal(overrides: { commenterId: string; commentId: string; matchedKeyword?: string | null }) {
+    return {
+      id: `log_${overrides.commentId}`,
+      instagramAccountId: "account_1",
+      commenterId: overrides.commenterId,
+      commenterName: null,
+      commentText: "",
+      commentId: overrides.commentId,
+      matchedKeyword: overrides.matchedKeyword ?? null,
+      status: "SENT",
+      createdAt: signalNow,
+      automation: { name: "Oferta" },
+      instagramAccount: { username: "brand" },
+    };
+  }
+
+  function leadRow(id: string, commenterId: string) {
+    return { ...detailRow, id, commenterId };
+  }
+
+  it("lê os sinais só dos últimos 7 dias e dentro do workspace", async () => {
+    await listOpportunities(
+      new NextRequest("http://localhost/api/opportunities?sort=engagement")
+    );
+
+    expect(mockPrisma.dmLog.findMany).toHaveBeenCalledTimes(2);
+    for (const [call] of mockPrisma.dmLog.findMany.mock.calls) {
+      expect(call.where.workspaceId).toBe("workspace_1");
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+      const elapsed = Date.now() - call.where.createdAt.gte.getTime();
+      expect(Math.abs(elapsed - sevenDaysMs)).toBeLessThan(5_000);
+    }
+  });
+
+  it("devolve a fila do mais engajado para o menos engajado", async () => {
+    mockPrisma.dmLog.findMany
+      .mockResolvedValueOnce([
+        signal({ commenterId: "quente", commentId: "c1", matchedKeyword: "quero comprar" }),
+        signal({ commenterId: "frio", commentId: "c2" }),
+      ])
+      .mockResolvedValueOnce([signal({ commenterId: "quente", commentId: "dm:1" })]);
+    mockPrisma.lead.findMany.mockResolvedValue([
+      leadRow("lead_frio", "frio"),
+      leadRow("lead_quente", "quente"),
+    ]);
+
+    const response = await listOpportunities(
+      new NextRequest("http://localhost/api/opportunities?sort=engagement")
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.sort).toBe("engagement");
+    expect(payload.data.window.period).toBe("7d");
+    expect(payload.data.items.map((item: { id: string }) => item.id)).toEqual([
+      "lead_quente",
+      "lead_frio",
+    ]);
+    expect(payload.data.items[0].engagement.score).toBeGreaterThan(
+      payload.data.items[1].engagement.score
+    );
+    expect(payload.data.items[0].engagement.temperature).toBeTruthy();
+  });
+
+  it("busca só as oportunidades de quem teve sinal no período, sem sair do workspace", async () => {
+    mockPrisma.dmLog.findMany
+      .mockResolvedValueOnce([signal({ commenterId: "person_1", commentId: "c1" })])
+      .mockResolvedValueOnce([]);
+
+    await listOpportunities(
+      new NextRequest("http://localhost/api/opportunities?sort=engagement&status=NOVO")
+    );
+
+    expect(mockPrisma.lead.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "workspace_1",
+          status: "NOVO",
+          commenterId: { in: ["person_1"] },
+        }),
+      })
+    );
+  });
+
+  it("não consulta oportunidades quando não houve nenhum sinal no período", async () => {
+    const response = await listOpportunities(
+      new NextRequest("http://localhost/api/opportunities?sort=engagement")
+    );
+    const payload = await response.json();
+
+    expect(payload.data.items).toEqual([]);
+    expect(payload.data.window.truncated).toBe(false);
+    expect(mockPrisma.lead.findMany).not.toHaveBeenCalled();
+  });
+
+  it("avisa quando a amostra de sinais estourou o teto em vez de fingir ordem completa", async () => {
+    const many = Array.from({ length: 500 }, (_, index) =>
+      signal({ commenterId: `person_${index}`, commentId: `c${index}` })
+    );
+    mockPrisma.dmLog.findMany.mockResolvedValueOnce(many).mockResolvedValueOnce([]);
+    mockPrisma.lead.findMany.mockResolvedValue([]);
+
+    const response = await listOpportunities(
+      new NextRequest("http://localhost/api/opportunities?sort=engagement")
+    );
+    const payload = await response.json();
+
+    expect(payload.data.window.truncated).toBe(true);
+  });
+
+  it("pagina pela chave da própria ordem e recusa o cursor da outra", async () => {
+    mockPrisma.dmLog.findMany
+      .mockResolvedValueOnce([
+        signal({ commenterId: "quente", commentId: "c1", matchedKeyword: "quero comprar" }),
+        signal({ commenterId: "frio", commentId: "c2" }),
+      ])
+      .mockResolvedValueOnce([]);
+    mockPrisma.lead.findMany.mockResolvedValue([
+      leadRow("lead_quente", "quente"),
+      leadRow("lead_frio", "frio"),
+    ]);
+
+    const firstPage = await listOpportunities(
+      new NextRequest("http://localhost/api/opportunities?sort=engagement&limit=1")
+    );
+    const first = await firstPage.json();
+
+    expect(first.data.items.map((item: { id: string }) => item.id)).toEqual(["lead_quente"]);
+    expect(first.data.page.hasMore).toBe(true);
+
+    mockPrisma.dmLog.findMany
+      .mockResolvedValueOnce([
+        signal({ commenterId: "quente", commentId: "c1", matchedKeyword: "quero comprar" }),
+        signal({ commenterId: "frio", commentId: "c2" }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    const secondPage = await listOpportunities(
+      new NextRequest(
+        `http://localhost/api/opportunities?sort=engagement&limit=1&cursor=${encodeURIComponent(first.data.page.nextCursor)}`
+      )
+    );
+    const second = await secondPage.json();
+
+    expect(second.data.items.map((item: { id: string }) => item.id)).toEqual(["lead_frio"]);
+    expect(second.data.page.hasMore).toBe(false);
+
+    const recentCursor = Buffer.from(
+      JSON.stringify({ updatedAt: now.toISOString(), id: "lead_1" }),
+      "utf8"
+    ).toString("base64url");
+    const rejected = await listOpportunities(
+      new NextRequest(
+        `http://localhost/api/opportunities?sort=engagement&cursor=${encodeURIComponent(recentCursor)}`
+      )
+    );
+
+    expect(rejected.status).toBe(400);
+  });
+
+  it("mantém a ordem por recência intacta no modo padrão", async () => {
+    await listOpportunities(new NextRequest("http://localhost/api/opportunities"));
+
+    expect(mockPrisma.dmLog.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.lead.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ updatedAt: "desc" }, { id: "desc" }] })
+    );
   });
 });

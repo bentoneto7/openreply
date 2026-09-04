@@ -1,3 +1,5 @@
+import type { OpportunityEngagement } from "@/lib/crm/opportunity-engagement";
+
 export const COMMERCIAL_STATUSES = [
   "NOVO",
   "ABORDADO",
@@ -89,6 +91,12 @@ export interface Opportunity {
   lastContactedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Presente só quando a listagem foi pedida na ordem de engajamento — é lá que
+   * ele é calculado, sobre a janela de 7 dias. Ausente significa "não olhamos
+   * essa janela", nunca "engajamento zero".
+   */
+  engagement?: OpportunityEngagement;
 }
 
 export interface OpportunityDetail extends Opportunity {
