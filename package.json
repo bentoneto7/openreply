@@ -20,17 +20,18 @@
     "@prisma/client": "^7.9.1",
     "@vercel/analytics": "^2.0.1",
     "bullmq": "^5.76.4",
+    "dotenv": "^17.4.2",
     "ioredis": "^5.10.1",
     "lucide-react": "^1.31.0",
     "next": "^16.3.1",
     "next-auth": "^5.0.0-beta.32",
     "pg": "^8.20.0",
+    "prisma": "^7.9.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
     "stripe": "^22.5.0",
-    "zod": "^4.3.6",
-    "prisma": "^7.9.1"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
