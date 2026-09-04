@@ -146,6 +146,38 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Cursor de controle interativo.
+ *
+ * O preflight do Tailwind v3 trazia `button, [role=button] { cursor: pointer }`
+ * e o v4 removeu, para casar com o padrão do navegador (`cursor: default`). O
+ * efeito prático foi 65 dos 72 botões da plataforma deixarem de indicar que são
+ * clicáveis. Restaurar aqui, em um lugar só, é o que impede o problema de
+ * voltar: botão novo já nasce certo, sem depender de alguém lembrar da classe.
+ *
+ * Em @layer base de propósito. Fora de layer, isto venceria os utilitários do
+ * Tailwind e quebraria os `disabled:cursor-wait` e `cursor-pointer` que já
+ * existem no código; dentro do layer, o utilitário continua tendo a palavra
+ * final, que é como o preflight sempre funcionou.
+ */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  select:not(:disabled),
+  input:where([type="checkbox"], [type="radio"]):not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Desabilitado é informação, não ausência dela: o cursor precisa dizer que
+     clicar ali não vai adiantar. */
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 /* Focus ring — visible, for keyboard users. */
 :focus-visible {
   outline: 2px solid var(--ds-accent);
