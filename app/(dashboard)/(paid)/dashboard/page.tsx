@@ -49,9 +49,9 @@ type ActionCard = {
 const HOT_INTENTS = new Set(["PRICE", "PURCHASE", "URGENCY", "STRONG_INTEREST"]);
 
 const TONE_CLASS: Record<ActionCard["tone"], string> = {
-  blue: "border-blue-200 bg-blue-50 text-blue-700",
-  amber: "border-amber-200 bg-amber-50 text-amber-700",
-  red: "border-red-200 bg-red-50 text-red-700",
+  blue: "border-accent-subtle-border bg-accent-subtle text-accent-strong",
+  amber: "border-warning-subtle-border bg-warning-subtle text-warning-strong",
+  red: "border-error-subtle-border bg-error-subtle text-error-strong",
 };
 
 export default function DashboardPage() {
@@ -175,7 +175,7 @@ export default function DashboardPage() {
       </header>
 
       {error && (
-        <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">
+        <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle p-4 text-sm text-error">
           {error}. Os totais não estão disponíveis agora.
           <button type="button" onClick={() => window.location.reload()} className="ml-2 font-semibold underline">Tentar novamente</button>
         </div>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
               <Link href="/opportunities" className="text-sm font-semibold text-accent hover:underline">Ver todas</Link>
             </div>
             {opportunityHasMore && (
-              <p role="status" className="mt-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+              <p role="status" className="mt-4 rounded border border-warning-subtle-border bg-warning-subtle px-3 py-2 text-xs leading-5 text-warning-strong">
                 Os cartões usam totais exatos. A lista abaixo prioriza somente as 100 oportunidades mais recentes; abra o pipeline para consultar as demais.
               </p>
             )}
@@ -226,7 +226,7 @@ export default function DashboardPage() {
                     <div className="min-w-0"><p className="truncate text-sm font-semibold">@{item.person.name ?? item.person.id}</p><p className="mt-1 truncate text-xs text-muted">{item.origin.text ?? "Texto de origem indisponível"}</p></div>
                     <div><p className="text-xs text-muted">{COMMERCIAL_STATUS_LABEL[item.status]}</p><p className="mt-1 text-xs font-medium text-foreground">{INTENT_LABEL[item.intent.category ?? "UNKNOWN"]}</p></div>
                     <div><p className={`text-xs ${overdue ? "font-semibold text-error" : "text-muted"}`}>{item.commercial.nextAction ?? (item.assignee ? "Definir próxima ação" : "Atribuir responsável")}</p>{item.commercial.nextActionAt && <p className="mt-1 text-xs text-muted">{new Date(item.commercial.nextActionAt).toLocaleString("pt-BR")}</p>}</div>
-                    <Link href={`/opportunities/${item.id}`} aria-label={`Abrir oportunidade de ${item.person.name ?? item.person.id}`} className="inline-flex h-10 w-10 items-center justify-center rounded text-accent hover:bg-blue-50"><ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+                    <Link href={`/opportunities/${item.id}`} aria-label={`Abrir oportunidade de ${item.person.name ?? item.person.id}`} className="inline-flex h-10 w-10 items-center justify-center rounded text-accent hover:bg-accent-subtle"><ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
                   </article>
                 );
               })}

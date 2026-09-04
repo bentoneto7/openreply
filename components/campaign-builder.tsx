@@ -262,8 +262,8 @@ function Radio({ name, checked, onSelect, children }: {
 
 function Toggle({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onToggle} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-accent" : "bg-zinc-300"}`}>
-      <span aria-hidden="true" className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform ${on ? "translate-x-6" : "translate-x-1"}`} />
+    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onToggle} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-accent" : "bg-border"}`}>
+      <span aria-hidden="true" className={`absolute top-1 h-5 w-5 rounded-full bg-surface transition-transform ${on ? "translate-x-6" : "translate-x-1"}`} />
     </button>
   );
 }
@@ -816,7 +816,7 @@ export default function CampaignBuilder({ mode, campaignId, templateSlug }: Camp
     return (
       <div className="panel mx-auto max-w-2xl rounded-xl p-6 sm:p-8" role="status">
         <div className="flex items-start gap-4">
-          <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${outcome === "active" ? "bg-success/15 text-success" : "bg-zinc-100 text-muted"}`}>
+          <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${outcome === "active" ? "bg-success/15 text-success" : "bg-surface-muted text-muted"}`}>
             {outcome === "active" ? <CircleCheck className="h-6 w-6" aria-hidden="true" /> : <ShieldCheck className="h-6 w-6" aria-hidden="true" />}
           </span>
           <div>
@@ -911,7 +911,7 @@ export default function CampaignBuilder({ mode, campaignId, templateSlug }: Camp
                 }}
                 className={`flex min-h-12 min-w-36 items-center gap-2 rounded-lg px-3 text-left transition-colors ${isCurrent ? "bg-accent text-white" : "text-muted hover:bg-surface-hover hover:text-foreground"}`}
               >
-                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${isCurrent ? "bg-white text-accent" : isComplete ? "bg-success/15 text-success" : "bg-zinc-100 text-muted"}`}>
+                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${isCurrent ? "bg-surface text-accent" : isComplete ? "bg-success/15 text-success" : "bg-surface-muted text-muted"}`}>
                   {isComplete ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
                 </span>
                 <span>
@@ -964,12 +964,12 @@ export default function CampaignBuilder({ mode, campaignId, templateSlug }: Camp
                   <div className="space-y-2">
                     <p className="text-xs leading-5 text-muted">Este rascunho ou campanha usa um objetivo anterior. Você pode preservá-lo abaixo ou migrar escolhendo uma das seis opções.</p>
                     <label htmlFor="campaign-goal" className="text-sm font-semibold text-foreground">Objetivo personalizado</label>
-                    <input id="campaign-goal" value={goal} onChange={(event) => setGoal(event.target.value)} maxLength={120} placeholder="Ex.: qualificar pedidos de orçamento" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" />
+                    <input id="campaign-goal" value={goal} onChange={(event) => setGoal(event.target.value)} maxLength={120} placeholder="Ex.: qualificar pedidos de orçamento" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" />
                   </div>
                 )}
                 <div className="space-y-2">
                   <label htmlFor="campaign-name" className="text-sm font-semibold text-foreground">Nome da campanha <span className="font-normal text-muted">(opcional)</span></label>
-                  <input id="campaign-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={100} placeholder="Ex.: Guia do lançamento" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" />
+                  <input id="campaign-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={100} placeholder="Ex.: Guia do lançamento" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" />
                 </div>
               </div>
             )}
@@ -1008,7 +1008,7 @@ export default function CampaignBuilder({ mode, campaignId, templateSlug }: Camp
                 <Section title="O comentário precisa conter">
                   <fieldset className="space-y-3"><legend className="sr-only">Regra de intenção</legend>
                     <Radio name="match-mode" checked={matchMode === "specific"} onSelect={() => setMatchMode("specific")}>uma ou mais palavras específicas</Radio>
-                    {matchMode === "specific" && <div className="space-y-2"><label htmlFor="campaign-keywords" className="text-sm font-medium text-foreground">Palavras-chave</label><input id="campaign-keywords" value={keywordText} onChange={(event) => setKeywordText(event.target.value)} placeholder="QUERO, LINK, PREÇO" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" /><p className="text-xs text-muted">Separe por vírgulas. Use palavras que indiquem uma ação clara.</p></div>}
+                    {matchMode === "specific" && <div className="space-y-2"><label htmlFor="campaign-keywords" className="text-sm font-medium text-foreground">Palavras-chave</label><input id="campaign-keywords" value={keywordText} onChange={(event) => setKeywordText(event.target.value)} placeholder="QUERO, LINK, PREÇO" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" /><p className="text-xs text-muted">Separe por vírgulas. Use palavras que indiquem uma ação clara.</p></div>}
                     <Radio name="match-mode" checked={matchMode === "any"} onSelect={() => setMatchMode("any")}>qualquer texto no comentário</Radio>
                   </fieldset>
                 </Section>
@@ -1020,11 +1020,11 @@ export default function CampaignBuilder({ mode, campaignId, templateSlug }: Camp
               <div className="space-y-7">
                 <Section title="Mensagem principal por DM" description="Use {username} para personalizar e {link} para inserir o link rastreado.">
                   <label htmlFor="campaign-dm" className="sr-only">Mensagem principal por DM</label>
-                  <textarea id="campaign-dm" value={dmMessage} onChange={(event) => setDmMessage(event.target.value)} rows={4} maxLength={1000} placeholder="Olá, {username}! Aqui está o que você pediu: {link}" className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" />
+                  <textarea id="campaign-dm" value={dmMessage} onChange={(event) => setDmMessage(event.target.value)} rows={4} maxLength={1000} placeholder="Olá, {username}! Aqui está o que você pediu: {link}" className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" />
                   {linkOpen ? (
                     <div className="space-y-2 rounded-lg border border-border p-3">
                       <label htmlFor="campaign-link" className="text-sm font-medium text-foreground">Link de destino <span className="font-normal text-muted">(opcional)</span></label>
-                      <input id="campaign-link" type="url" value={trackedDestinationUrl} onChange={(event) => setTrackedDestinationUrl(event.target.value)} onBlur={ensureLinkToken} placeholder="https://suaempresa.com/oferta" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" />
+                      <input id="campaign-link" type="url" value={trackedDestinationUrl} onChange={(event) => setTrackedDestinationUrl(event.target.value)} onBlur={ensureLinkToken} placeholder="https://suaempresa.com/oferta" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" />
                       <label htmlFor="campaign-link-label" className="text-sm font-medium text-foreground">Texto do botão</label>
                       <input id="campaign-link-label" value={linkButtonLabel} onChange={(event) => setLinkButtonLabel(event.target.value)} maxLength={20} className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground focus:border-accent/40 focus:outline-none" />
                     </div>
@@ -1043,7 +1043,7 @@ export default function CampaignBuilder({ mode, campaignId, templateSlug }: Camp
                       {publicReplyMessages.map((message, index) => (
                         <div key={index} className="flex items-center gap-2">
                           <label htmlFor={`public-reply-${index}`} className="sr-only">Resposta pública {index + 1}</label>
-                          <input id={`public-reply-${index}`} value={message} onChange={(event) => setPublicReplyMessages((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} maxLength={1000} placeholder="Enviei os detalhes por DM." className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" />
+                          <input id={`public-reply-${index}`} value={message} onChange={(event) => setPublicReplyMessages((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} maxLength={1000} placeholder="Enviei os detalhes por DM." className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" />
                           {publicReplyMessages.length > 1 && <button type="button" onClick={() => setPublicReplyMessages((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-muted hover:bg-error/10 hover:text-error" aria-label={`Remover resposta pública ${index + 1}`}><X className="h-4 w-4" aria-hidden="true" /></button>}
                         </div>
                       ))}
@@ -1058,18 +1058,18 @@ export default function CampaignBuilder({ mode, campaignId, templateSlug }: Camp
 
                     <div className="rounded-lg border border-border bg-background p-3">
                       <div className="flex items-center justify-between gap-4"><span className="text-sm text-foreground">Pedir confirmação antes da mensagem principal</span><Toggle on={openingDmEnabled} onToggle={() => setOpeningDmEnabled((value) => !value)} label="Ativar DM inicial com confirmação" /></div>
-                      {openingDmEnabled && <div className="mt-3 space-y-2"><label htmlFor="opening-message" className="sr-only">Mensagem inicial</label><textarea id="opening-message" value={openingDmMessage} onChange={(event) => setOpeningDmMessage(event.target.value)} rows={3} maxLength={1000} placeholder="Olá! Posso enviar o material por aqui?" className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" /><label htmlFor="opening-label" className="sr-only">Texto do botão de confirmação</label><input id="opening-label" value={openingDmButtonLabel} onChange={(event) => setOpeningDmButtonLabel(event.target.value)} maxLength={64} placeholder="Quero receber" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" /></div>}
+                      {openingDmEnabled && <div className="mt-3 space-y-2"><label htmlFor="opening-message" className="sr-only">Mensagem inicial</label><textarea id="opening-message" value={openingDmMessage} onChange={(event) => setOpeningDmMessage(event.target.value)} rows={3} maxLength={1000} placeholder="Olá! Posso enviar o material por aqui?" className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" /><label htmlFor="opening-label" className="sr-only">Texto do botão de confirmação</label><input id="opening-label" value={openingDmButtonLabel} onChange={(event) => setOpeningDmButtonLabel(event.target.value)} maxLength={64} placeholder="Quero receber" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" /></div>}
                     </div>
 
                     <div className="rounded-lg border border-border bg-background p-3">
                       <div className="flex items-center justify-between gap-4"><span className="text-sm text-foreground">Solicitar que a pessoa siga o perfil</span><Toggle on={requireFollow} onToggle={() => setRequireFollow((value) => !value)} label="Solicitar que a pessoa siga o perfil" /></div>
-                      {requireFollow && <div className="mt-3 space-y-2"><label htmlFor="follow-message" className="sr-only">Mensagem para seguir o perfil</label><textarea id="follow-message" value={followPromptMessage} onChange={(event) => setFollowPromptMessage(event.target.value)} rows={3} maxLength={1000} placeholder="Siga nosso perfil e confirme no botão para continuar." className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" /><label htmlFor="follow-label" className="sr-only">Texto do botão de confirmação de seguidor</label><input id="follow-label" value={followPromptButtonLabel} onChange={(event) => setFollowPromptButtonLabel(event.target.value)} maxLength={20} className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground focus:border-accent/40 focus:outline-none" /><p className="text-xs text-muted">Se a Meta não permitir verificar o vínculo, o fluxo poderá liberar a mensagem conforme a regra atual do sistema.</p></div>}
+                      {requireFollow && <div className="mt-3 space-y-2"><label htmlFor="follow-message" className="sr-only">Mensagem para seguir o perfil</label><textarea id="follow-message" value={followPromptMessage} onChange={(event) => setFollowPromptMessage(event.target.value)} rows={3} maxLength={1000} placeholder="Siga nosso perfil e confirme no botão para continuar." className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" /><label htmlFor="follow-label" className="sr-only">Texto do botão de confirmação de seguidor</label><input id="follow-label" value={followPromptButtonLabel} onChange={(event) => setFollowPromptButtonLabel(event.target.value)} maxLength={20} className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground focus:border-accent/40 focus:outline-none" /><p className="text-xs text-muted">Se a Meta não permitir verificar o vínculo, o fluxo poderá liberar a mensagem conforme a regra atual do sistema.</p></div>}
                     </div>
 
                     {linkOpen && (secondLinkOpen ? (
                       <div className="space-y-2 rounded-lg border border-border bg-background p-3">
                         <label htmlFor="second-link" className="text-sm font-medium text-foreground">Segundo link</label>
-                        <input id="second-link" type="url" value={secondaryDestinationUrl} onChange={(event) => setSecondaryDestinationUrl(event.target.value)} placeholder="https://suaempresa.com/alternativa" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" />
+                        <input id="second-link" type="url" value={secondaryDestinationUrl} onChange={(event) => setSecondaryDestinationUrl(event.target.value)} placeholder="https://suaempresa.com/alternativa" className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" />
                         <label htmlFor="second-label" className="text-sm font-medium text-foreground">Texto do segundo botão</label>
                         <input id="second-label" value={secondaryButtonLabel} onChange={(event) => setSecondaryButtonLabel(event.target.value)} maxLength={20} className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground focus:border-accent/40 focus:outline-none" />
                       </div>
@@ -1077,7 +1077,7 @@ export default function CampaignBuilder({ mode, campaignId, templateSlug }: Camp
 
                     <div className="rounded-lg border border-border bg-background p-3">
                       <div className="flex items-center justify-between gap-4"><span className="text-sm text-foreground">Enviar acompanhamento após o link</span><Toggle on={followUpEnabled} onToggle={() => setFollowUpEnabled((value) => !value)} label="Ativar mensagem de acompanhamento" /></div>
-                      {followUpEnabled && <div className="mt-3 space-y-2"><label htmlFor="follow-up-message" className="sr-only">Mensagem de acompanhamento</label><textarea id="follow-up-message" value={followUpMessage} onChange={(event) => setFollowUpMessage(event.target.value)} rows={3} maxLength={1000} placeholder="Conseguiu acessar? Se precisar, responda por aqui." className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none" /><label htmlFor="follow-up-delay" className="text-xs text-muted">Minutos depois do link</label><input id="follow-up-delay" type="number" min={0} max={1440} value={followUpDelayMinutes} onChange={(event) => setFollowUpDelayMinutes(Math.max(0, Math.min(1440, Math.floor(Number(event.target.value) || 0))))} className="w-24 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-accent/40 focus:outline-none" /><p className="text-xs text-muted">Máximo de 24 horas para respeitar a janela de mensagens.</p></div>}
+                      {followUpEnabled && <div className="mt-3 space-y-2"><label htmlFor="follow-up-message" className="sr-only">Mensagem de acompanhamento</label><textarea id="follow-up-message" value={followUpMessage} onChange={(event) => setFollowUpMessage(event.target.value)} rows={3} maxLength={1000} placeholder="Conseguiu acessar? Se precisar, responda por aqui." className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none" /><label htmlFor="follow-up-delay" className="text-xs text-muted">Minutos depois do link</label><input id="follow-up-delay" type="number" min={0} max={1440} value={followUpDelayMinutes} onChange={(event) => setFollowUpDelayMinutes(Math.max(0, Math.min(1440, Math.floor(Number(event.target.value) || 0))))} className="w-24 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-accent/40 focus:outline-none" /><p className="text-xs text-muted">Máximo de 24 horas para respeitar a janela de mensagens.</p></div>}
                     </div>
                   </div>
                 )}

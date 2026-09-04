@@ -163,7 +163,7 @@ export default function SettingsPage() {
         {instagramError && (
           <div
             role="alert"
-            className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-error"
+            className="mb-4 rounded border border-error-subtle-border bg-error-subtle p-3 text-sm text-error"
           >
             {instagramError}
           </div>
@@ -297,7 +297,7 @@ export default function SettingsPage() {
 
         {membersData?.invitations.length ? (
           <div className="mt-6 border-t border-border pt-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
               Convites pendentes
             </p>
             <div className="space-y-3">

@@ -33,7 +33,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
   const expired = invitation.expiresAt <= new Date();
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main data-theme="light" className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-5 py-12">
         <Link href="/" className="mb-8 text-sm font-bold text-blue-100">
           Comentou

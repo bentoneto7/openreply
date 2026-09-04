@@ -55,13 +55,22 @@ const WORKSPACE_ROLE_LABEL: Record<WorkspaceMemberOption["role"], string> = {
   MEMBER: "Membro",
 };
 
+/**
+ * Seis etapas precisam de seis matizes distinguíveis. Quatro delas têm papel
+ * semântico e saem dos tokens (nova = acento, negociando = atenção, ganho =
+ * sucesso, perdido = neutro). ABORDADO e RESPONDEU são matizes intermediários
+ * sem papel próprio: não valem uma família de token cada, então usam a variante
+ * `dark:` diretamente — é exatamente o caso para o qual ela existe.
+ */
 const STATUS_STYLE: Record<CommercialStatus, string> = {
-  NOVO: "border-blue-200 bg-blue-50 text-blue-700",
-  ABORDADO: "border-violet-200 bg-violet-50 text-violet-700",
-  RESPONDEU: "border-cyan-200 bg-cyan-50 text-cyan-700",
-  NEGOCIANDO: "border-amber-200 bg-amber-50 text-amber-700",
-  GANHO: "border-green-200 bg-green-50 text-green-700",
-  PERDIDO: "border-zinc-200 bg-zinc-100 text-zinc-600",
+  NOVO: "border-accent-subtle-border bg-accent-subtle text-accent-strong",
+  ABORDADO:
+    "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-300",
+  RESPONDEU:
+    "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-900 dark:bg-cyan-950 dark:text-cyan-300",
+  NEGOCIANDO: "border-warning-subtle-border bg-warning-subtle text-warning-strong",
+  GANHO: "border-success-subtle-border bg-success-subtle text-success-strong",
+  PERDIDO: "border-border bg-surface-muted text-muted",
 };
 
 function formatMoney(value: number | null) {
@@ -355,7 +364,7 @@ export default function OpportunitiesPage() {
               type="button"
               onClick={() => changeSort("recent")}
               aria-pressed={sort === "recent"}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${sort === "recent" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${sort === "recent" ? "bg-accent-subtle text-accent" : "text-muted hover:text-foreground"}`}
             >
               <Clock3 className="h-4 w-4" aria-hidden="true" /> Mais recentes
             </button>
@@ -363,7 +372,7 @@ export default function OpportunitiesPage() {
               type="button"
               onClick={() => changeSort("engagement")}
               aria-pressed={sort === "engagement"}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${sort === "engagement" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${sort === "engagement" ? "bg-accent-subtle text-accent" : "text-muted hover:text-foreground"}`}
             >
               <Flame className="h-4 w-4" aria-hidden="true" /> Mais engajados
             </button>
@@ -373,7 +382,7 @@ export default function OpportunitiesPage() {
               type="button"
               onClick={() => setView("list")}
               aria-pressed={view === "list"}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${view === "list" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${view === "list" ? "bg-accent-subtle text-accent" : "text-muted hover:text-foreground"}`}
             >
               <List className="h-4 w-4" aria-hidden="true" /> Lista
             </button>
@@ -381,7 +390,7 @@ export default function OpportunitiesPage() {
               type="button"
               onClick={() => setView("board")}
               aria-pressed={view === "board"}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${view === "board" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${view === "board" ? "bg-accent-subtle text-accent" : "text-muted hover:text-foreground"}`}
             >
               <Columns3 className="h-4 w-4" aria-hidden="true" /> Kanban
             </button>
@@ -391,7 +400,7 @@ export default function OpportunitiesPage() {
 
       {sort === "engagement" && (
         <section
-          className="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          className="rounded border border-warning-subtle-border bg-warning-subtle p-4 text-sm text-warning-strong"
           aria-live="polite"
         >
           <p className="font-semibold">Fila dos últimos 7 dias, do mais engajado para o menos engajado.</p>
@@ -502,7 +511,7 @@ export default function OpportunitiesPage() {
                 setIntentCategory("all");
                 setQuery("");
               }}
-              className="min-h-9 rounded px-3 text-xs font-semibold text-accent hover:bg-blue-50"
+              className="min-h-9 rounded px-3 text-xs font-semibold text-accent hover:bg-accent-subtle"
             >
               Limpar filtros
             </button>
@@ -511,13 +520,13 @@ export default function OpportunitiesPage() {
       </section>
 
       {selected.size > 0 && (
-        <section className="flex flex-col gap-3 rounded border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center" aria-live="polite">
-          <p className="text-sm font-semibold text-blue-900">{selected.size} selecionada(s)</p>
+        <section className="flex flex-col gap-3 rounded border border-accent-subtle-border bg-accent-subtle p-4 sm:flex-row sm:items-center" aria-live="polite">
+          <p className="text-sm font-semibold text-accent-strong">{selected.size} selecionada(s)</p>
           <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:justify-end">
             <select
               value={batchStatus}
               onChange={(event) => setBatchStatus(event.target.value as typeof batchStatus)}
-              className="min-h-11 rounded border border-blue-200 bg-white px-3 text-sm"
+              className="min-h-11 rounded border border-accent-subtle-border bg-surface px-3 text-sm"
             >
               <option value="">Escolha a nova etapa</option>
               <option value="ABORDADO">Abordado</option>
@@ -537,7 +546,7 @@ export default function OpportunitiesPage() {
       )}
 
       {error && (
-        <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">
+        <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle p-4 text-sm text-error">
           {error} <button type="button" onClick={() => void load()} className="ml-2 font-semibold underline">Tentar novamente</button>
         </div>
       )}
@@ -581,7 +590,7 @@ export default function OpportunitiesPage() {
                 <div><StatusPill status={item.status} /></div>
                 <p className="truncate text-sm text-muted">{item.assignee?.user.name ?? item.assignee?.user.email ?? "Sem responsável"}</p>
                 <p className="text-sm font-semibold text-foreground">{formatMoney(item.commercial.potentialValueCents)}</p>
-                <Link href={`/opportunities/${item.id}`} aria-label="Abrir oportunidade" className="inline-flex h-9 w-9 items-center justify-center rounded text-accent hover:bg-blue-50">
+                <Link href={`/opportunities/${item.id}`} aria-label="Abrir oportunidade" className="inline-flex h-9 w-9 items-center justify-center rounded text-accent hover:bg-accent-subtle">
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </article>
@@ -592,15 +601,15 @@ export default function OpportunitiesPage() {
         <section className="-mx-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0" aria-label="Kanban de oportunidades">
           <div className="grid min-w-[1780px] grid-cols-6 gap-3">
             {columns.map((column) => (
-              <div key={column.status} className="rounded-lg bg-zinc-100 p-3">
+              <div key={column.status} className="rounded-lg bg-surface-muted p-3">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <StatusPill status={column.status} />
                   <span className="text-xs font-semibold text-muted">{column.items.length}</span>
                 </div>
                 <div className="space-y-3">
-                  {column.items.length === 0 && <p className="rounded border border-dashed border-zinc-300 px-3 py-6 text-center text-xs text-muted">Sem oportunidades</p>}
+                  {column.items.length === 0 && <p className="rounded border border-dashed border-border px-3 py-6 text-center text-xs text-muted">Sem oportunidades</p>}
                   {column.items.map((item) => (
-                    <article key={item.id} className="rounded border border-border bg-white p-4 shadow-sm">
+                    <article key={item.id} className="rounded border border-border bg-surface p-4 shadow-sm">
                       <OpportunitySummary opportunity={item} referenceTime={loadedAt} />
                       <div className="mt-4 flex items-center justify-between gap-3">
                         <p className="truncate text-xs text-muted">{item.assignee?.user.name ?? "Sem responsável"}</p>

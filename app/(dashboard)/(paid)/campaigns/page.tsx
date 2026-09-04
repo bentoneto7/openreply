@@ -381,7 +381,7 @@ export default function CampaignsPage() {
       </div>
 
       {actionError && (
-        <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-error">
+        <div role="alert" className="rounded border border-error-subtle-border bg-error-subtle p-4 text-sm text-error">
           {actionError}
         </div>
       )}
@@ -393,7 +393,7 @@ export default function CampaignsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nome, palavra-chave ou mensagem…"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none"
           />
           <div className="inline-flex shrink-0 rounded-lg bg-surface p-1">
             {(["all", "active", "paused"] as const).map((s) => (
@@ -506,13 +506,13 @@ export default function CampaignsPage() {
                     className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                       auto.isActive
                         ? "bg-success/10 text-success"
-                        : "bg-zinc-500/10 text-muted"
+                        : "bg-muted/10 text-muted"
                     }`}
                   >
                     {auto.isActive ? "Ativa" : "Pausada"}
                   </span>
                   {auto.pendingNextReel && (
-                    <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-warning">
+                    <span className="shrink-0 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
                       Aguardando o próximo reel
                     </span>
                   )}
@@ -545,13 +545,13 @@ export default function CampaignsPage() {
 
                 {/* Tracked link sent */}
                 {auto.trackedLinks[0]?.trackedUrl && (
-                  <p className="mt-2 truncate font-mono text-xs text-zinc-500">
+                  <p className="mt-2 truncate font-mono text-xs text-muted">
                     {auto.trackedLinks[0].trackedUrl}
                   </p>
                 )}
 
                 {/* Stats */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-zinc-500">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-muted">
                   <span className="font-medium text-foreground">
                     {auto._count.dmLogs} execuções
                   </span>
@@ -568,7 +568,7 @@ export default function CampaignsPage() {
                   <span>·</span>
                   <span>{auto.analytics.clicks} cliques</span>
                 </div>
-                <p className="mt-2 text-xs leading-4 text-zinc-500">
+                <p className="mt-2 text-xs leading-4 text-muted">
                   Cliques/DM usa eventos de acesso ÷ DMs enviadas; pode incluir acessos repetidos ou prévias automatizadas e não representa venda.
                 </p>
 
@@ -610,12 +610,12 @@ export default function CampaignsPage() {
                   aria-label={`${auto.isActive ? "Pausar" : "Ativar"} campanha ${auto.name}`}
                   className={`
                     relative h-6 w-11 rounded-full transition-colors disabled:cursor-wait disabled:opacity-50
-                    ${auto.isActive ? "bg-accent" : "bg-zinc-300"}
+                    ${auto.isActive ? "bg-accent" : "bg-border"}
                   `}
                 >
                   <span
                     className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm
+                      absolute top-1 w-4 h-4 rounded-full bg-surface transition-transform shadow-sm
                       ${auto.isActive ? "left-6" : "left-1"}
                     `}
                   />

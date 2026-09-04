@@ -35,7 +35,7 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
+    <div data-theme="light" className="min-h-screen flex items-center justify-center px-6 bg-background">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <BrandLogo className="mx-auto h-auto w-40" priority />
