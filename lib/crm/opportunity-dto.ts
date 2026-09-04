@@ -1,4 +1,5 @@
 import { Prisma } from "@/app/generated/prisma/client";
+import type { OpportunityEngagement } from "@/lib/crm/opportunity-engagement";
 
 const opportunityBaseSelect = {
   id: true,
@@ -128,8 +129,16 @@ function baseDto(row: OpportunityListRow) {
   };
 }
 
-export function toOpportunityListDto(row: OpportunityListRow) {
-  return baseDto(row);
+/**
+ * `engagement` só existe quando a listagem foi pedida na ordem de engajamento —
+ * é lá que ele é calculado. Ausente significa "não olhamos essa janela", que é
+ * diferente de um score zero.
+ */
+export function toOpportunityListDto(
+  row: OpportunityListRow,
+  engagement?: OpportunityEngagement
+) {
+  return engagement ? { ...baseDto(row), engagement } : baseDto(row);
 }
 
 export function toOpportunityDetailDto(row: OpportunityDetailRow) {

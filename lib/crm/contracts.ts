@@ -17,6 +17,16 @@ export const LEAD_INTENT_CATEGORIES = [
 
 export const OPPORTUNITY_LIST_LIMIT = 25;
 export const OPPORTUNITY_LIST_MAX_LIMIT = 100;
+
+/**
+ * Ordens da fila de oportunidades. `recent` é a ordem de trabalho (quem mudou
+ * por último), `engagement` é a ordem de prioridade comercial: do mais engajado
+ * para o menos engajado dentro da janela de 7 dias. Ver
+ * `lib/crm/opportunity-engagement.ts`.
+ */
+export const OPPORTUNITY_SORTS = ["recent", "engagement"] as const;
+
+export type OpportunitySort = (typeof OPPORTUNITY_SORTS)[number];
 const MAX_MONEY_CENTS = 2_000_000_000;
 
 const nullableText = (max: number) => z.string().trim().max(max).nullable().optional();
@@ -66,6 +76,7 @@ export const opportunityListQuerySchema = z
     intentCategory: z.enum(LEAD_INTENT_CATEGORIES).optional(),
     sourceAutomationId: z.string().min(1).max(191).optional(),
     q: z.string().trim().min(1).max(120).optional(),
+    sort: z.enum(OPPORTUNITY_SORTS).default("recent"),
     cursor: z.string().max(1_000).optional(),
     limit: z.coerce.number().int().min(1).max(OPPORTUNITY_LIST_MAX_LIMIT).default(OPPORTUNITY_LIST_LIMIT),
   })

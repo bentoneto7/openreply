@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
+  Clock3,
   Columns3,
+  Flame,
   List,
   Search,
   UserRound,
 } from "lucide-react";
+import TemperatureBadge from "@/components/temperature-badge";
 import {
   COMMERCIAL_STATUSES,
   COMMERCIAL_STATUS_LABEL,
@@ -18,9 +21,17 @@ import {
   type IntentCategory,
   type Opportunity,
 } from "@/lib/crm/client-types";
+import type { OpportunitySort } from "@/lib/crm/contracts";
 
 type ViewMode = "list" | "board";
 type FilterAvailability = "loading" | "available" | "empty" | "unavailable";
+
+/** Recorte devolvido pela API quando a fila está ordenada por engajamento. */
+interface RankingWindow {
+  period: string;
+  since: string;
+  truncated: boolean;
+}
 
 interface InstagramAccountOption {
   id: string;
@@ -81,6 +92,7 @@ function StatusPill({ status }: { status: CommercialStatus }) {
 
 function OpportunitySummary({ opportunity, referenceTime }: { opportunity: Opportunity; referenceTime: number | null }) {
   const nextDate = formatRelativeDate(opportunity.commercial.nextActionAt, referenceTime);
+  const engagement = opportunity.engagement;
   return (
     <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-2">
@@ -88,6 +100,9 @@ function OpportunitySummary({ opportunity, referenceTime }: { opportunity: Oppor
           @{opportunity.person.name ?? opportunity.person.id}
         </p>
         <span className="text-xs text-muted">@{opportunity.instagramAccount.username}</span>
+        {engagement && (
+          <TemperatureBadge temperature={engagement.temperature} score={engagement.score} />
+        )}
       </div>
       <p className="mt-1 line-clamp-2 text-sm text-muted">
         {opportunity.origin.text ?? "Contato identificado sem texto de origem disponível."}
@@ -102,6 +117,13 @@ function OpportunitySummary({ opportunity, referenceTime }: { opportunity: Oppor
           </span>
         )}
       </div>
+      {engagement && (
+        // Nenhuma posição na fila sem o motivo dela: a pessoa que atende precisa
+        // saber o que a plataforma observou antes de confiar na ordem.
+        <p className="mt-2 text-xs text-muted">
+          {engagement.signalCount} sinal(is) em 7 dias · {engagement.reasons.join(" · ")}
+        </p>
+      )}
     </div>
   );
 }
@@ -109,6 +131,8 @@ function OpportunitySummary({ opportunity, referenceTime }: { opportunity: Oppor
 export default function OpportunitiesPage() {
   const [items, setItems] = useState<Opportunity[]>([]);
   const [view, setView] = useState<ViewMode>("list");
+  const [sort, setSort] = useState<OpportunitySort>("recent");
+  const [rankingWindow, setRankingWindow] = useState<RankingWindow | null>(null);
   const [status, setStatus] = useState<CommercialStatus | "all">("all");
   const [instagramAccountId, setInstagramAccountId] = useState("all");
   const [assigneeMemberId, setAssigneeMemberId] = useState("all");
@@ -138,10 +162,12 @@ export default function OpportunitiesPage() {
         const requestedAssigneeId = requestedFilters.get("assigneeMemberId");
         const requestedIntent = requestedFilters.get("intentCategory");
         const requestedQuery = requestedFilters.get("q");
+        const requestedSort = requestedFilters.get("sort");
 
         if (requestedStatus && COMMERCIAL_STATUSES.includes(requestedStatus as CommercialStatus)) {
           setStatus(requestedStatus as CommercialStatus);
         }
+        if (requestedSort === "engagement") setSort("engagement");
         if (requestedIntent && INTENT_CATEGORIES.includes(requestedIntent as IntentCategory)) {
           setIntentCategory(requestedIntent as IntentCategory);
         }
@@ -209,11 +235,13 @@ export default function OpportunitiesPage() {
     syncFilter("assigneeMemberId", assigneeMemberId);
     syncFilter("intentCategory", intentCategory);
     syncFilter("q", query.trim());
+    // "recent" é o padrão: sai da URL para o link continuar limpo.
+    syncFilter("sort", sort === "recent" ? "" : sort);
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [assigneeMemberId, filtersReady, instagramAccountId, intentCategory, query, status]);
+  }, [assigneeMemberId, filtersReady, instagramAccountId, intentCategory, query, sort, status]);
 
   const load = useCallback(async (cursor?: string) => {
-    const params = new URLSearchParams({ limit: "100" });
+    const params = new URLSearchParams({ limit: "100", sort });
     if (status !== "all") params.set("status", status);
     if (instagramAccountId !== "all") params.set("instagramAccountId", instagramAccountId);
     if (assigneeMemberId !== "all") params.set("assigneeMemberId", assigneeMemberId);
@@ -232,6 +260,7 @@ export default function OpportunitiesPage() {
       }
       setItems((current) => cursor ? [...current, ...payload.data.items] : payload.data.items);
       setNextCursor(payload.data.page.nextCursor);
+      setRankingWindow((payload.data.window ?? null) as RankingWindow | null);
       setLoadedAt(Date.now());
       if (!cursor) setSelected(new Set());
     } catch (loadError) {
@@ -240,7 +269,7 @@ export default function OpportunitiesPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [assigneeMemberId, instagramAccountId, intentCategory, query, status]);
+  }, [assigneeMemberId, instagramAccountId, intentCategory, query, sort, status]);
 
   useEffect(() => {
     if (!filtersReady) return;
@@ -255,6 +284,17 @@ export default function OpportunitiesPage() {
     })),
     [items]
   );
+
+  /**
+   * O cursor pertence à ordem que o gerou: cada ordem pagina pela própria
+   * chave. Descartar aqui evita que um "Carregar mais" disparado no intervalo
+   * do debounce leve o cursor da ordem anterior.
+   */
+  function changeSort(next: OpportunitySort) {
+    if (next === sort) return;
+    setNextCursor(null);
+    setSort(next);
+  }
 
   function toggleSelected(id: string) {
     setSelected((current) => {
@@ -309,25 +349,69 @@ export default function OpportunitiesPage() {
             Priorize cada contato, preserve a origem e registre o resultado confirmado.
           </p>
         </div>
-        <div className="inline-flex w-fit rounded-lg border border-border bg-surface p-1" aria-label="Modo de visualização">
-          <button
-            type="button"
-            onClick={() => setView("list")}
-            aria-pressed={view === "list"}
-            className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${view === "list" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
-          >
-            <List className="h-4 w-4" aria-hidden="true" /> Lista
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("board")}
-            aria-pressed={view === "board"}
-            className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${view === "board" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
-          >
-            <Columns3 className="h-4 w-4" aria-hidden="true" /> Kanban
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex w-fit rounded-lg border border-border bg-surface p-1" aria-label="Ordem da fila">
+            <button
+              type="button"
+              onClick={() => changeSort("recent")}
+              aria-pressed={sort === "recent"}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${sort === "recent" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
+            >
+              <Clock3 className="h-4 w-4" aria-hidden="true" /> Mais recentes
+            </button>
+            <button
+              type="button"
+              onClick={() => changeSort("engagement")}
+              aria-pressed={sort === "engagement"}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${sort === "engagement" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
+            >
+              <Flame className="h-4 w-4" aria-hidden="true" /> Mais engajados
+            </button>
+          </div>
+          <div className="inline-flex w-fit rounded-lg border border-border bg-surface p-1" aria-label="Modo de visualização">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              aria-pressed={view === "list"}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${view === "list" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
+            >
+              <List className="h-4 w-4" aria-hidden="true" /> Lista
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("board")}
+              aria-pressed={view === "board"}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold ${view === "board" ? "bg-blue-50 text-accent" : "text-muted hover:text-foreground"}`}
+            >
+              <Columns3 className="h-4 w-4" aria-hidden="true" /> Kanban
+            </button>
+          </div>
         </div>
       </header>
+
+      {sort === "engagement" && (
+        <section
+          className="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          aria-live="polite"
+        >
+          <p className="font-semibold">Fila dos últimos 7 dias, do mais engajado para o menos engajado.</p>
+          <p className="mt-1">
+            A ordem é a mesma pontuação do mapa de calor: comentário, comentário com palavra-chave,
+            Direct recebido e abertura da DM com link, pesados por recência. É onde a conversão é mais
+            provável, não uma promessa de venda.
+          </p>
+          <p className="mt-1">
+            Quem não teve nenhum sinal no período fica de fora deste recorte — não aparece com
+            engajamento zero. Volte para <strong>Mais recentes</strong> para ver o pipeline inteiro.
+          </p>
+          {rankingWindow?.truncated && (
+            <p className="mt-2 font-semibold">
+              Havia mais sinais no período do que cabe em uma leitura. A ordem cobre os mais recentes e
+              pode estar incompleta.
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="panel rounded p-4" aria-label="Filtros de oportunidades">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -465,7 +549,9 @@ export default function OpportunitiesPage() {
           <UserRound className="mx-auto h-9 w-9 text-accent" aria-hidden="true" />
           <h2 className="mt-4 text-lg font-semibold">Nenhuma oportunidade neste recorte</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-            Oportunidades aparecem quando um comentário ou Direct é observado. Ajuste os filtros ou revise sua primeira campanha.
+            {sort === "engagement"
+              ? "Ninguém comentou, mandou Direct ou abriu a DM com link nos últimos 7 dias. Em Mais recentes o pipeline inteiro continua acessível."
+              : "Oportunidades aparecem quando um comentário ou Direct é observado. Ajuste os filtros ou revise sua primeira campanha."}
           </p>
           <Link href="/campaigns/new" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover">
             Criar campanha <ArrowRight className="h-4 w-4" aria-hidden="true" />
